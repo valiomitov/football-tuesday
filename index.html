@@ -95,6 +95,11 @@
   .cal-cell.today .dn{background:var(--accent);color:#06210f;border-radius:6px;padding:0 5px;align-self:flex-start}
   .cal-cell.sel{outline:2px solid #ffe14d}
   .cal-cell .ev{font-size:12px;font-weight:700}
+  .search{display:flex;align-items:center;gap:8px;background:#0e1a14;border:1px solid var(--line);border-radius:10px;padding:4px 10px;margin:4px 0 10px}
+  .search:focus-within{border-color:var(--accent)}
+  .search input{flex:1;background:none;border:none;color:var(--text);font-size:15px;padding:8px 0;outline:none}
+  .search input::-webkit-search-cancel-button{display:none}
+  .search button{background:none;border:none;color:var(--muted);padding:4px 6px}
   .lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
   .lang button{border:none;border-radius:0;padding:6px 10px;font-size:13px;background:none;color:var(--muted)}
   .lang button.on{background:var(--accent);color:#06210f;font-weight:700}
@@ -220,7 +225,7 @@ const BG = {
   "Calendar file downloaded. Open it to add the weekly match": "Файлът е изтеглен. Отвори го, за да добавиш седмичния мач",
   "Delete this match? Appearances will be recalculated.": "Да изтрия ли мача? Участията ще бъдат преизчислени.",
   "Voting is closed for this match.": "Гласуването за този мач е затворено.", "Match not found.": "Мачът не е намерен.",
-  "Rate the players": "Оцени играчите"
+  "Rate the players": "Оцени играчите", "Search player…": "Търси играч…", "No players match your search.": "Няма играчи, които отговарят на търсенето.", "Clear": "Изчисти"
 };
 const pl = (n, one, many) => `${n} ${+n === 1 ? one : many}`;
 const BG_RX = [
@@ -504,7 +509,9 @@ function render() {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === state.tab));
   const app = document.getElementById("app");
   if (!state.ready.players) { app.innerHTML = `<div class="empty">Loading…</div>`; return; }
+  const sf = document.activeElement && document.activeElement.id === "p-search" ? document.activeElement.selectionStart : null;
   app.innerHTML = { match: viewMatch, players: viewPlayers, stats: viewStats, calendar: viewCalendar, history: viewHistory, help: viewHelp, rate: viewRate }[state.tab]();
+  if (sf != null) { const i = document.getElementById("p-search"); if (i) { i.focus(); i.setSelectionRange(sf, sf); } }
 }
 
 function renderAuth() {
@@ -818,6 +825,21 @@ function pitchSVG(A, B) {
   return s + `</svg>`;
 }
 
+// search: case-insensitive, Cyrillic typed input also matches Latin names (and vice versa)
+const CYR = { а:"a",б:"b",в:"v",г:"g",д:"d",е:"e",ж:"zh",з:"z",и:"i",й:"y",к:"k",л:"l",м:"m",н:"n",о:"o",п:"p",р:"r",с:"s",т:"t",у:"u",ф:"f",х:"h",ц:"ts",ч:"ch",ш:"sh",щ:"sht",ъ:"a",ь:"y",ю:"yu",я:"ya" };
+const norm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[а-я]/g, c => CYR[c] ?? c);
+const playerHay = p => norm([p.name, p.position, ...alts(p)].join(" "));
+const matchesSearch = (p, q) => !q || playerHay(p).includes(norm(q));
+function applyPlayerSearch() {
+  const q = state.playerSearch || "";
+  let shown = 0;
+  document.querySelectorAll("tr[data-pid]").forEach(tr => {
+    const p = byId(tr.dataset.pid); const ok = p && matchesSearch(p, q);
+    tr.style.display = ok ? "" : "none"; if (ok) shown++;
+  });
+  const none = document.getElementById("p-none"); if (none) none.style.display = shown ? "none" : "";
+}
+
 function viewPlayers() {
   const ps = state.players.slice().sort((a, b) => (b.active !== false) - (a.active !== false) || POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.name.localeCompare(b.name));
   return `
@@ -826,12 +848,14 @@ function viewPlayers() {
       <h2>Squad <span class="pill">${ps.length} players</span></h2>
       ${canEdit() ? `<button class="primary" data-action="new-player">+ Add player</button>` : ""}
     </div>
+    <div class="search"><span>🔍</span><input type="search" id="p-search" placeholder="Search player…" value="${esc(state.playerSearch || "")}" autocomplete="off">${state.playerSearch ? `<button data-action="clear-search" title="Clear">✕</button>` : ""}</div>
     <p class="hint"><b>⚖️ Equivalent player</b> = a player of similar level. When both play, they go to opposite teams. (Optional: 🤝 mark two players to always play on the same team.)</p>
     ${ps.length ? `<div class="tablewrap"><table>
       <tr><th>Name</th><th>Positions</th><th>Rating</th><th>Equivalent player</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
       ${ps.map(p => {
         const mate = p.pairId && byId(p.pairId);
-        return `<tr style="${p.active === false ? "opacity:.5" : ""}">
+        const hide = !matchesSearch(p, state.playerSearch);
+        return `<tr data-pid="${p.id}" style="${p.active === false ? "opacity:.5;" : ""}${hide ? "display:none" : ""}">
           <td><b>${esc(p.name)}</b></td>
           <td style="white-space:nowrap">${posTag(p.position)} ${alts(p).map(k => `<span class="pos alt pos-${k}">${k}</span>`).join(" ")}</td>
           <td class="stars">${stars(p.rating)}</td>
@@ -840,7 +864,8 @@ function viewPlayers() {
           ${canEdit() ? `<td style="text-align:right"><button data-action="edit-player" data-id="${p.id}">Edit</button></td>` : ""}
         </tr>`;
       }).join("")}
-    </table></div>` : `<div class="empty">No players yet.</div>`}
+    </table></div>
+    <div class="empty" id="p-none" style="${ps.some(p => matchesSearch(p, state.playerSearch)) ? "display:none" : ""}">No players match your search.</div>` : `<div class="empty">No players yet.</div>`}
   </section>`;
 }
 
@@ -1152,6 +1177,7 @@ document.addEventListener("click", async e => {
       else await guarded(() => api.addSession({ ...data, scoreA: null, scoreB: null, createdAt: Date.now() }), `Match on ${fmtDate(date)} saved ✔`);
       break;
     }
+    case "clear-search": state.playerSearch = ""; render(); document.getElementById("p-search")?.focus(); break;
     case "rate": openRateForm(id); break;
     case "share-rate": {
       const s = state.sessions.find(x => x.id === id);
@@ -1206,6 +1232,15 @@ document.addEventListener("click", async e => {
   }
 });
 
+document.addEventListener("input", e => {
+  if (e.target.id === "p-search") {
+    state.playerSearch = e.target.value;
+    applyPlayerSearch();
+    const box = e.target.parentElement, has = box.querySelector("[data-action=clear-search]");
+    if (state.playerSearch && !has) box.insertAdjacentHTML("beforeend", `<button data-action="clear-search" title="Clear">✕</button>`);
+    if (!state.playerSearch && has) has.remove();
+  }
+});
 document.addEventListener("change", e => {
   const el = e.target.closest("[data-change]");
   if (!el) return;
