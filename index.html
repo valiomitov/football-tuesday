@@ -433,9 +433,9 @@ function viewPlayers() {
       <h2>Squad <span class="pill">${ps.length} players</span></h2>
       ${canEdit() ? `<button class="primary" data-action="new-player">+ Add player</button>` : ""}
     </div>
-    <p class="hint"><b>Split apart</b> pairs = two players of similar level, one goes to each team. <b>Keep together</b> pairs always play on the same team.</p>
+    <p class="hint"><b>⚖️ Equivalent player</b> = a player of similar level. When both play, they go to opposite teams. (Optional: 🤝 mark two players to always play on the same team.)</p>
     ${ps.length ? `<div class="tablewrap"><table>
-      <tr><th>Name</th><th>Pos</th><th>Rating</th><th>Pair</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
+      <tr><th>Name</th><th>Pos</th><th>Rating</th><th>Equivalent player</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
       ${ps.map(p => {
         const mate = p.pairId && byId(p.pairId);
         return `<tr style="${p.active === false ? "opacity:.5" : ""}">
@@ -548,14 +548,14 @@ function openPlayerForm(id) {
       <div class="field" style="flex:1"><label>Position</label><select id="f-pos">${POSITIONS.map(k => `<option value="${k}" ${p.position === k ? "selected" : ""}>${POS_LABEL[k]}</option>`).join("")}</select></div>
       <div class="field" style="flex:1"><label>Rating</label><select id="f-rating">${[1, 2, 3, 4, 5].map(r => `<option value="${r}" ${p.rating === r ? "selected" : ""}>${r} ${stars(r)}</option>`).join("")}</select></div>
     </div>
-    <div class="field"><label>Pair with</label>
-      <select id="f-pair"><option value="">— no pair —</option>
-        ${others.map(o => `<option value="${o.id}" ${p.pairId === o.id ? "selected" : ""}>${esc(o.name)} (${o.position})${o.pairId && o.pairId !== id ? ` · now paired with ${esc(byId(o.pairId)?.name || "?")}` : ""}</option>`).join("")}
+    <div class="field"><label>Equivalent player</label>
+      <select id="f-pair"><option value="">— none —</option>
+        ${others.map(o => `<option value="${o.id}" ${p.pairId === o.id ? "selected" : ""}>${esc(o.name)} (${o.position})${o.pairId && o.pairId !== id ? ` · now equivalent to ${esc(byId(o.pairId)?.name || "?")}` : ""}</option>`).join("")}
       </select>
     </div>
     <div class="field">
-      <label class="radio"><input type="radio" name="f-mode" value="apart" ${p.pairMode !== "together" ? "checked" : ""}> <span>⚖️ <b>Split apart</b>: similar level, one goes to each team</span></label>
-      <label class="radio"><input type="radio" name="f-mode" value="together" ${p.pairMode === "together" ? "checked" : ""}> <span>🤝 <b>Keep together</b>: always on the same team</span></label>
+      <label class="radio"><input type="radio" name="f-mode" value="apart" ${p.pairMode !== "together" ? "checked" : ""}> <span>⚖️ <b>Opposite teams</b> (equivalent level)</span></label>
+      <label class="radio"><input type="radio" name="f-mode" value="together" ${p.pairMode === "together" ? "checked" : ""}> <span>🤝 <b>Same team</b> (always play together)</span></label>
     </div>
     <label class="radio"><input type="checkbox" id="f-active" ${p.active !== false ? "checked" : ""}> Active (shows on Match day)</label>
     <div class="row between" style="margin-top:16px">

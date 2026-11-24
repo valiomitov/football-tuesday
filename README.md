@@ -55,8 +55,8 @@ Result: everyone can **read**, and only listed organisers can **write**. Without
 
 ## How the team split works
 
-1. Players who are paired **⚖️ "split apart"** (two players of similar level) go one to each team.
-2. Players paired **🤝 "keep together"** always land on the same team.
+1. Each player can have an **⚖️ equivalent player** (similar level). When both play, they go to opposite teams.
+2. Players marked **🤝 same team** always land on the same team.
 3. Everyone else fills the teams so their sizes stay even.
 4. The app tries 3,000 random splits like this and keeps the fairest one, judged by:
    - total rating difference (weighted most),
