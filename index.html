@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Football Tuesday</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
+<style>
+  :root{
+    --bg:#0e1a14; --card:#15251c; --card2:#1c3125; --line:#2a4535;
+    --text:#e9f2ec; --muted:#93ab9c; --accent:#3ddc84; --accent-d:#2bb36a;
+    --danger:#ff5d5d; --gk:#f4b942; --def:#4aa3ff; --mid:#3ddc84; --fwd:#ff6b6b;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;background:#0a140f;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  header h1{margin:0;font-size:20px;letter-spacing:.3px}
+  header .auth{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);flex-wrap:wrap}
+  nav{display:flex;gap:4px;padding:8px 12px;background:#0a140f;border-bottom:1px solid var(--line);overflow-x:auto}
+  nav button{background:none;border:none;color:var(--muted);padding:9px 14px;border-radius:8px;font-size:14px;cursor:pointer;white-space:nowrap}
+  nav button.on{background:var(--card2);color:var(--text);font-weight:600}
+  main{max-width:1100px;margin:0 auto;padding:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:16px}
+  h2{margin:0 0 12px;font-size:17px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .between{justify-content:space-between}
+  button,.btn{background:var(--card2);color:var(--text);border:1px solid var(--line);border-radius:9px;padding:8px 13px;font-size:14px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.primary{background:var(--accent);color:#06210f;border-color:var(--accent);font-weight:700}
+  button.primary:hover{background:var(--accent-d)}
+  button.danger{color:var(--danger);border-color:#5a2a2a}
+  button.big{width:100%;padding:14px;font-size:17px;margin-top:14px}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  .pill{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted);font-weight:500}
+  .badge{font-size:11px;padding:3px 8px;border-radius:6px;background:#3b3216;color:var(--gk)}
+  .hint{color:var(--muted);font-size:13px;margin:4px 0 10px}
+  .pos{display:inline-block;min-width:36px;text-align:center;font-size:11px;font-weight:700;padding:2px 5px;border-radius:5px;color:#06140c}
+  .pos-GK{background:var(--gk)} .pos-DEF{background:var(--def)} .pos-MID{background:var(--mid)} .pos-FWD{background:var(--fwd)}
+  .checkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+  .chk{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--card2);user-select:none}
+  .chk input{accent-color:var(--accent);width:17px;height:17px}
+  .chk.on{border-color:var(--accent);background:#173a26}
+  .chk .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);font-size:14px;vertical-align:middle}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+  .tablewrap{overflow-x:auto}
+  .stars{color:var(--gk);letter-spacing:1px;white-space:nowrap}
+  .muted{color:var(--muted)}
+  .pitchwrap{background:#0b3d1f;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+  svg.pitch{display:block;width:100%;height:auto}
+  svg .pl{cursor:pointer}
+  svg .pl circle{transition:stroke .15s}
+  svg .pl.sel circle{stroke:#ffe14d;stroke-width:6}
+  svg .pl text{pointer-events:none;font-family:system-ui,sans-serif;text-anchor:middle}
+  svg .pl .p{font-size:17px;font-weight:800;fill:#fff}
+  svg .pl .n{font-size:19px;font-weight:700;fill:#fff;paint-order:stroke;stroke:rgba(0,0,0,.7);stroke-width:5px}
+  .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+  .team{background:var(--card2);border-radius:10px;padding:12px;border-top:4px solid}
+  .team h3{margin:0 0 6px;font-size:16px}
+  .team ul{list-style:none;padding:0;margin:8px 0 0}
+  .team li{display:flex;gap:8px;align-items:center;padding:3px 0;font-size:14px}
+  .bar{height:10px;background:var(--accent);border-radius:5px;min-width:2px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:16px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+  .kpi .v{font-size:26px;font-weight:800}
+  .kpi .l{color:var(--muted);font-size:13px}
+  input[type=text],input[type=date],input[type=number],select{background:#0e1a14;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:14px}
+  input[type=number]{width:62px;text-align:center}
+  #modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+  #modal.open{display:flex}
+  .dialog{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;width:100%;max-width:440px;max-height:92vh;overflow:auto}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
+  .field input[type=text],.field select{width:100%}
+  .radio{display:flex;gap:8px;align-items:flex-start;padding:6px 0;font-size:14px;cursor:pointer}
+  #toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#06210f;border:1px solid var(--accent);color:var(--text);padding:10px 16px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+  #toast.show{opacity:1}
+  .session{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:var(--card2)}
+  .score{font-size:20px;font-weight:800}
+  .empty{color:var(--muted);text-align:center;padding:24px}
+  @media (max-width:640px){ .teams{grid-template-columns:1fr} main{padding:10px} th.hide-m,td.hide-m{display:none}
+    .checkgrid{grid-template-columns:1fr 1fr;gap:6px} .chk{padding:8px 7px;font-size:14px} .pitchwrap{max-width:460px;margin:0 auto} }
+</style>
+</head>
+<body>
+<header>
+  <h1>⚽ Football Tuesday</h1>
+  <div class="auth" id="auth"></div>
+</header>
+<nav id="tabs">
+  <button data-tab="match" class="on">Match day</button>
+  <button data-tab="players">Players</button>
+  <button data-tab="stats">Stats</button>
+  <button data-tab="history">History</button>
+</nav>
+<main id="app"><div class="empty">Loading…</div></main>
+<div id="modal"></div>
+<div id="toast"></div>
+
+<script type="module">
+/* =====================================================================
+   CONFIG — paste your Firebase web-app config here (Project settings →
+   Your apps → SDK setup). Leave apiKey empty to run in DEMO mode
+   (data saved only in this browser).
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAodbdmFWuT2pPA6cMdk5V4c2VtJFK5Vm8",
+  authDomain: "football-tuesday.firebaseapp.com",
+  projectId: "football-tuesday",
+  appId: "1:56503276:web:b97824372c820c4c08eec9"
+};
+// Google accounts allowed to edit (must match firestore.rules)
+const ADMIN_EMAILS = ["valio.mitov@gmail.com"];
+const TEAMS = { A: { name: "Reds", color: "#e63946", emoji: "🔴" },
+                B: { name: "Blues", color: "#2f6fdf", emoji: "🔵" } };
+const SPLIT_ITERATIONS = 3000;
+/* ===================================================================== */
+
+const POSITIONS = ["GK", "DEF", "MID", "FWD"];
+const POS_LABEL = { GK: "Goalkeeper", DEF: "Defender", MID: "Midfielder", FWD: "Forward" };
+const LOCAL_MODE = !FIREBASE_CONFIG.apiKey;
+
+const ls = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const today = () => new Date().toISOString().slice(0, 10);
+const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+const stars = n => "★".repeat(n || 0) + "☆".repeat(5 - (n || 0));
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+
+const state = {
+  tab: "match",
+  players: [],
+  sessions: [],
+  user: null,
+  checked: new Set(ls.get("ft_checked", [])),
+  teams: null,          // { A: [ids], B: [ids] }
+  selected: null,       // { team, id }
+  statsYear: "all",
+  ready: { players: false, sessions: false }
+};
+
+const canEdit = () => LOCAL_MODE || (state.user && ADMIN_EMAILS.map(e => e.toLowerCase()).includes((state.user.email || "").toLowerCase()));
+const byId = id => state.players.find(p => p.id === id);
+
+/* ---------------------------- DATA LAYER ---------------------------- */
+const api = {};
+
+function demoPlayers() {
+  const raw = [
+    ["Ivan", "GK", 4], ["Georgi", "GK", 3], ["Dimitar", "DEF", 4], ["Nikolay", "DEF", 4],
+    ["Petar", "DEF", 3], ["Stefan", "DEF", 2], ["Martin", "MID", 5], ["Kaloyan", "MID", 5],
+    ["Hristo", "MID", 3], ["Todor", "MID", 3], ["Viktor", "MID", 2], ["Boris", "FWD", 4],
+    ["Plamen", "FWD", 4], ["Aleksandar", "FWD", 3]
+  ];
+  const ps = raw.map(([name, position, rating]) => ({ id: uid(), name, position, rating, active: true, pairId: null, pairMode: null }));
+  const pair = (a, b, mode) => { ps[a].pairId = ps[b].id; ps[b].pairId = ps[a].id; ps[a].pairMode = ps[b].pairMode = mode; };
+  pair(0, 1, "apart"); pair(2, 3, "apart"); pair(6, 7, "apart"); pair(11, 12, "apart"); pair(9, 10, "together");
+  return ps;
+}
+
+async function initLocal() {
+  let players = ls.get("ft_players", null);
+  let sessions = ls.get("ft_sessions", []);
+  if (!players) {
+    players = demoPlayers();
+    state.checked = new Set(players.map(p => p.id));
+    ls.set("ft_checked", [...state.checked]);
+  }
+  const commit = () => {
+    ls.set("ft_players", players); ls.set("ft_sessions", sessions);
+    state.players = JSON.parse(JSON.stringify(players));
+    state.sessions = JSON.parse(JSON.stringify(sessions));
+    state.ready = { players: true, sessions: true };
+    render();
+  };
+  api.newId = uid;
+  api.upsertPlayers = async list => {
+    for (const { id, ...data } of list) {
+      const p = players.find(x => x.id === id);
+      if (p) Object.assign(p, data); else players.push({ id, ...data });
+    }
+    commit();
+  };
+  api.deletePlayer = async id => {
+    players = players.filter(p => p.id !== id);
+    players.forEach(p => { if (p.pairId === id) { p.pairId = null; p.pairMode = null; } });
+    commit();
+  };
+  api.addSession = async data => { sessions.push({ id: uid(), ...data }); commit(); };
+  api.updateSession = async (id, data) => { Object.assign(sessions.find(s => s.id === id), data); commit(); };
+  api.deleteSession = async id => { sessions = sessions.filter(s => s.id !== id); commit(); };
+  api.signIn = api.signOut = async () => {};
+  commit();
+}
+
+async function initFirebase() {
+  const V = "10.12.2";
+  const { initializeApp } = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
+  const fs = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
+  const au = await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
+  const app = initializeApp(FIREBASE_CONFIG);
+  const db = fs.getFirestore(app);
+  const auth = au.getAuth(app);
+
+  api.newId = () => fs.doc(fs.collection(db, "players")).id;
+  api.upsertPlayers = async list => {
+    const b = fs.writeBatch(db);
+    for (const { id, ...data } of list) b.set(fs.doc(db, "players", id), data, { merge: true });
+    await b.commit();
+  };
+  api.deletePlayer = async id => {
+    const b = fs.writeBatch(db);
+    b.delete(fs.doc(db, "players", id));
+    state.players.filter(p => p.pairId === id).forEach(p => b.update(fs.doc(db, "players", p.id), { pairId: null, pairMode: null }));
+    await b.commit();
+  };
+  api.addSession = data => fs.addDoc(fs.collection(db, "sessions"), data);
+  api.updateSession = (id, data) => fs.updateDoc(fs.doc(db, "sessions", id), data);
+  api.deleteSession = id => fs.deleteDoc(fs.doc(db, "sessions", id));
+  api.signIn = () => au.signInWithPopup(auth, new au.GoogleAuthProvider());
+  api.signOut = () => au.signOut(auth);
+
+  au.onAuthStateChanged(auth, u => { state.user = u; render(); });
+  fs.onSnapshot(fs.collection(db, "players"), snap => {
+    state.players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    state.ready.players = true; render();
+  }, err => toast("Could not load players: " + err.message));
+  fs.onSnapshot(fs.collection(db, "sessions"), snap => {
+    state.sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    state.ready.sessions = true; render();
+  }, err => toast("Could not load matches: " + err.message));
+}
+
+async function guarded(fn, okMsg) {
+  try { await fn(); if (okMsg) toast(okMsg); }
+  catch (e) { console.error(e); toast("Save failed: " + (e.code === "permission-denied" ? "you are not an admin" : e.message)); }
+}
+
+/* --------------------------- SPLIT ENGINE --------------------------- */
+// Pairs with mode "apart"   → similar players, one goes to each team.
+// Pairs with mode "together"→ always on the same team.
+// Then run many random valid splits and keep the best-balanced one.
+function buildUnits(players) {
+  const present = new Map(players.map(p => [p.id, p]));
+  const used = new Set(), apart = [], together = [], singles = [];
+  for (const p of players) {
+    if (used.has(p.id)) continue;
+    const mate = p.pairId && present.get(p.pairId);
+    if (mate && mate.pairId === p.id && !used.has(mate.id)) {
+      used.add(p.id); used.add(mate.id);
+      (p.pairMode === "together" ? together : apart).push([p, mate]);
+    } else { used.add(p.id); singles.push(p); }
+  }
+  return { apart, together, singles };
+}
+
+function randomSplit({ apart, together, singles }) {
+  const A = [], B = [];
+  const smaller = () => A.length < B.length ? A : B.length < A.length ? B : (Math.random() < .5 ? A : B);
+  for (const [x, y] of shuffle([...apart])) Math.random() < .5 ? (A.push(x), B.push(y)) : (A.push(y), B.push(x));
+  for (const pr of shuffle([...together])) smaller().push(...pr);
+  for (const s of shuffle([...singles])) smaller().push(s);
+  return { A, B };
+}
+
+function teamStats(team) {
+  const total = team.reduce((s, p) => s + (p.rating || 3), 0);
+  const counts = Object.fromEntries(POSITIONS.map(k => [k, team.filter(p => p.position === k).length]));
+  return { total, avg: team.length ? total / team.length : 0, counts, size: team.length };
+}
+
+function splitCost(A, B) {
+  const a = teamStats(A), b = teamStats(B);
+  let c = Math.abs(a.total - b.total) * 10;
+  for (const k of POSITIONS) c += Math.abs(a.counts[k] - b.counts[k]) * 4;
+  if (a.counts.GK + b.counts.GK >= 2 && (a.counts.GK === 0 || b.counts.GK === 0)) c += 60;
+  if (Math.abs(A.length - B.length) > 1) c += 1000;
+  return c;
+}
+
+function splitTeams() {
+  const players = state.players.filter(p => state.checked.has(p.id) && p.active !== false);
+  if (players.length < 2) return toast("Tick at least 2 players");
+  const units = buildUnits(players);
+  let best = null, bestCost = Infinity;
+  for (let i = 0; i < SPLIT_ITERATIONS; i++) {
+    const s = randomSplit(units);
+    const c = splitCost(s.A, s.B);
+    if (c < bestCost) { best = s; bestCost = c; if (c === 0 && i > 200) break; }
+  }
+  state.teams = { A: best.A.map(p => p.id), B: best.B.map(p => p.id) };
+  state.selected = null;
+  render();
+  document.getElementById("lineups")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+const formatLabel = n => n < 2 ? "—" : `${Math.ceil(n / 2)} v ${Math.floor(n / 2)}`;
+
+/* ----------------------------- RENDERING ---------------------------- */
+function render() {
+  renderAuth();
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === state.tab));
+  const app = document.getElementById("app");
+  if (!state.ready.players) { app.innerHTML = `<div class="empty">Loading…</div>`; return; }
+  app.innerHTML = { match: viewMatch, players: viewPlayers, stats: viewStats, history: viewHistory }[state.tab]();
+}
+
+function renderAuth() {
+  const el = document.getElementById("auth");
+  if (LOCAL_MODE) { el.innerHTML = `<span class="badge">DEMO MODE · data saved in this browser only</span>`; return; }
+  if (state.user) {
+    el.innerHTML = `${canEdit() ? "" : `<span class="badge">View only</span>`}<span>${esc(state.user.email)}</span><button data-action="signout">Sign out</button>`;
+  } else el.innerHTML = `<button data-action="signin">Organiser sign in</button>`;
+}
+
+function posTag(p) { return `<span class="pos pos-${esc(p)}">${esc(p)}</span>`; }
+
+function viewMatch() {
+  const active = state.players.filter(p => p.active !== false).sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.name.localeCompare(b.name));
+  const n = active.filter(p => state.checked.has(p.id)).length;
+  if (!active.length) return `<div class="card empty">No players yet. Add them in the <b>Players</b> tab.</div>`;
+  return `
+  <section class="card">
+    <div class="row between">
+      <h2>Who's playing tonight? <span class="pill">${n} in · ${formatLabel(n)}</span></h2>
+      <div class="row"><button data-action="check-all">All</button><button data-action="check-none">None</button></div>
+    </div>
+    <div class="checkgrid">
+      ${active.map(p => `
+        <label class="chk ${state.checked.has(p.id) ? "on" : ""}">
+          <input type="checkbox" data-change="toggle-check" data-id="${p.id}" ${state.checked.has(p.id) ? "checked" : ""}>
+          ${posTag(p.position)}<span class="nm">${esc(p.name)}</span>
+        </label>`).join("")}
+    </div>
+    ${n % 2 ? `<p class="hint">Odd number of players: one team will have one extra.</p>` : ""}
+    <button class="primary big" data-action="split" ${n < 2 ? "disabled" : ""}>⚡ Split teams</button>
+  </section>
+  ${state.teams ? viewLineups() : ""}`;
+}
+
+function currentTeams() {
+  const A = state.teams.A.map(byId).filter(Boolean), B = state.teams.B.map(byId).filter(Boolean);
+  return { A, B };
+}
+
+function viewLineups() {
+  const { A, B } = currentTeams();
+  const sa = teamStats(A), sb = teamStats(B);
+  const teamBox = (key, team, s) => `
+    <div class="team" style="border-top-color:${TEAMS[key].color}">
+      <h3>${TEAMS[key].emoji} ${esc(TEAMS[key].name)} <span class="pill">${team.length} players</span></h3>
+      <div class="muted" style="font-size:13px">Strength ${s.total} · avg ${s.avg.toFixed(2)} · ${POSITIONS.map(k => `${k} ${s.counts[k]}`).join(" · ")}</div>
+      <ul>${team.slice().sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position)).map(p => `<li>${posTag(p.position)} ${esc(p.name)} <span class="stars" style="margin-left:auto;font-size:12px">${stars(p.rating)}</span></li>`).join("")}</ul>
+    </div>`;
+  return `
+  <section class="card" id="lineups">
+    <div class="row between">
+      <h2>Line-ups <span class="pill">${formatLabel(A.length + B.length)}</span></h2>
+      <div class="row">
+        <button data-action="split">🎲 Re-roll</button>
+        <button data-action="share">📲 WhatsApp</button>
+        <button data-action="copy">📋 Copy</button>
+      </div>
+    </div>
+    <p class="hint">Tap a player, then tap a player in the other team to swap them.</p>
+    <div class="pitchwrap">${pitchSVG(A, B)}</div>
+    <div class="teams">${teamBox("A", A, sa)}${teamBox("B", B, sb)}</div>
+    ${canEdit() ? `
+    <div class="row" style="margin-top:14px">
+      <label class="muted" for="matchDate">Match date</label>
+      <input type="date" id="matchDate" value="${today()}">
+      <button class="primary" data-action="save-match">💾 Save match</button>
+      <span class="hint" style="margin:0">Saving counts appearances. Add the score later in History.</span>
+    </div>` : ""}
+  </section>`;
+}
+
+function pitchSVG(A, B) {
+  const W = 1000, H = 620;
+  const X = { GK: 62, DEF: 190, MID: 320, FWD: 440 };
+  const portrait = window.innerWidth < 700;           // vertical pitch on phones
+  const P = (x, y) => portrait ? [y, x] : [x, y];       // swap axes in portrait
+  let s = portrait
+    ? `<svg class="pitch" viewBox="0 0 ${H} ${W}" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(0 1 1 0 0 0)">`
+    : `<svg class="pitch" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg"><g>`;
+  for (let i = 0; i < 10; i++) s += `<rect x="${i * 100}" y="0" width="100" height="${H}" fill="${i % 2 ? "#14703a" : "#177c40"}"/>`;
+  const L = `stroke="rgba(255,255,255,.85)" stroke-width="3" fill="none"`;
+  const [ta, tb] = [P(W / 4, 48), P(W * 3 / 4, 48)];
+  const tA = portrait ? [85, 52] : ta, tB = portrait ? [85, W - 30] : tb;
+  s += `<rect x="15" y="15" width="${W - 30}" height="${H - 30}" ${L}/>
+        <line x1="${W / 2}" y1="15" x2="${W / 2}" y2="${H - 15}" ${L}/>
+        <circle cx="${W / 2}" cy="${H / 2}" r="75" ${L}/><circle cx="${W / 2}" cy="${H / 2}" r="4" fill="#fff"/>
+        <rect x="15" y="150" width="140" height="320" ${L}/><rect x="15" y="235" width="50" height="150" ${L}/>
+        <rect x="${W - 155}" y="150" width="140" height="320" ${L}/><rect x="${W - 65}" y="235" width="50" height="150" ${L}/>
+        <rect x="3" y="270" width="12" height="80" ${L}/><rect x="${W - 15}" y="270" width="12" height="80" ${L}/></g>
+        <text x="${tA[0]}" y="${tA[1]}" text-anchor="middle" font-size="22" font-weight="800" fill="${TEAMS.A.color}" style="paint-order:stroke;stroke:#fff;stroke-width:4px">${esc(TEAMS.A.name)}</text>
+        <text x="${tB[0]}" y="${tB[1]}" text-anchor="middle" font-size="22" font-weight="800" fill="${TEAMS.B.color}" style="paint-order:stroke;stroke:#fff;stroke-width:4px">${esc(TEAMS.B.name)}</text>`;
+  const draw = (team, key, mirror) => {
+    const lines = { GK: [], DEF: [], MID: [], FWD: [] };
+    team.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0)).forEach(p => {
+      let pos = POSITIONS.includes(p.position) ? p.position : "MID";
+      if (pos === "GK" && lines.GK.length) pos = "DEF";   // only one keeper in goal
+      lines[pos].push(p);
+    });
+    for (const pos of POSITIONS) {
+      const arr = lines[pos];
+      arr.forEach((p, i) => {
+        const [x, y] = P(mirror ? W - X[pos] : X[pos], 40 + (H - 60) * (i + 1) / (arr.length + 1));
+        const sel = state.selected && state.selected.id === p.id;
+        const nm = p.name.length > 11 ? p.name.slice(0, 10) + "…" : p.name;
+        s += `<g class="pl ${sel ? "sel" : ""}" data-action="pick" data-team="${key}" data-id="${p.id}" transform="translate(${x},${y})">
+          <circle r="30" fill="${TEAMS[key].color}" stroke="#fff" stroke-width="3"/>
+          <text class="p" y="6">${esc(p.position)}</text>
+          <text class="n" y="54">${esc(nm)}</text></g>`;
+      });
+    }
+  };
+  draw(A, "A", false); draw(B, "B", true);
+  return s + `</svg>`;
+}
+
+function viewPlayers() {
+  const ps = state.players.slice().sort((a, b) => (b.active !== false) - (a.active !== false) || POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.name.localeCompare(b.name));
+  return `
+  <section class="card">
+    <div class="row between">
+      <h2>Squad <span class="pill">${ps.length} players</span></h2>
+      ${canEdit() ? `<button class="primary" data-action="new-player">+ Add player</button>` : ""}
+    </div>
+    <p class="hint"><b>Split apart</b> pairs = two players of similar level, one goes to each team. <b>Keep together</b> pairs always play on the same team.</p>
+    ${ps.length ? `<div class="tablewrap"><table>
+      <tr><th>Name</th><th>Pos</th><th>Rating</th><th>Pair</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
+      ${ps.map(p => {
+        const mate = p.pairId && byId(p.pairId);
+        return `<tr style="${p.active === false ? "opacity:.5" : ""}">
+          <td><b>${esc(p.name)}</b></td>
+          <td>${posTag(p.position)}</td>
+          <td class="stars">${stars(p.rating)}</td>
+          <td>${mate ? `${p.pairMode === "together" ? "🤝" : "⚖️"} ${esc(mate.name)}` : `<span class="muted">—</span>`}</td>
+          <td class="hide-m">${p.active === false ? "Inactive" : "Active"}</td>
+          ${canEdit() ? `<td style="text-align:right"><button data-action="edit-player" data-id="${p.id}">Edit</button></td>` : ""}
+        </tr>`;
+      }).join("")}
+    </table></div>` : `<div class="empty">No players yet.</div>`}
+  </section>`;
+}
+
+function aggregateStats() {
+  const sessions = state.sessions.filter(s => state.statsYear === "all" || (s.date || "").startsWith(state.statsYear));
+  const map = new Map();
+  for (const s of sessions) {
+    const scored = Number.isFinite(s.scoreA) && Number.isFinite(s.scoreB);
+    for (const side of ["A", "B"]) {
+      for (const pl of (side === "A" ? s.teamA : s.teamB) || []) {
+        const r = map.get(pl.id) || { id: pl.id, name: pl.name, apps: 0, w: 0, d: 0, l: 0, last: "" };
+        r.apps++;
+        if (scored) {
+          const mine = side === "A" ? s.scoreA : s.scoreB, theirs = side === "A" ? s.scoreB : s.scoreA;
+          mine > theirs ? r.w++ : mine < theirs ? r.l++ : r.d++;
+        }
+        if ((s.date || "") > r.last) r.last = s.date;
+        map.set(pl.id, r);
+      }
+    }
+  }
+  for (const r of map.values()) { const p = byId(r.id); if (p) r.name = p.name; }
+  return { rows: [...map.values()].sort((a, b) => b.apps - a.apps || b.w - a.w || a.name.localeCompare(b.name)), sessions };
+}
+
+function viewStats() {
+  const years = [...new Set(state.sessions.map(s => (s.date || "").slice(0, 4)).filter(Boolean))].sort().reverse();
+  const { rows, sessions } = aggregateStats();
+  const max = Math.max(1, ...rows.map(r => r.apps));
+  const top = rows[0];
+  const bestWin = rows.filter(r => r.w + r.d + r.l >= 3).sort((a, b) => b.w / (b.w + b.d + b.l) - a.w / (a.w + a.d + a.l))[0];
+  return `
+  <div class="row between" style="margin-bottom:12px">
+    <h2 style="margin:0">Statistics</h2>
+    <select data-change="stats-year">
+      <option value="all">All time</option>
+      ${years.map(y => `<option value="${y}" ${state.statsYear === y ? "selected" : ""}>${y}</option>`).join("")}
+    </select>
+  </div>
+  <div class="kpis">
+    <div class="kpi"><div class="v">${sessions.length}</div><div class="l">Matches played</div></div>
+    <div class="kpi"><div class="v">${rows.length}</div><div class="l">Different players</div></div>
+    <div class="kpi"><div class="v">${top ? esc(top.name) : "—"}</div><div class="l">Most appearances${top ? ` (${top.apps})` : ""}</div></div>
+    <div class="kpi"><div class="v">${bestWin ? esc(bestWin.name) : "—"}</div><div class="l">Best win rate${bestWin ? ` (${Math.round(100 * bestWin.w / (bestWin.w + bestWin.d + bestWin.l))}%, min 3 results)` : " (min 3 results)"}</div></div>
+  </div>
+  <section class="card">
+    ${rows.length ? `<div class="tablewrap"><table>
+      <tr><th>#</th><th>Player</th><th>Apps</th><th class="hide-m" style="width:30%"></th><th>W</th><th>D</th><th>L</th><th>Win %</th><th class="hide-m">Last played</th></tr>
+      ${rows.map((r, i) => {
+        const g = r.w + r.d + r.l;
+        return `<tr><td class="muted">${i + 1}</td><td><b>${esc(r.name)}</b></td><td><b>${r.apps}</b></td>
+          <td class="hide-m"><div class="bar" style="width:${100 * r.apps / max}%"></div></td>
+          <td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${g ? Math.round(100 * r.w / g) + "%" : "—"}</td>
+          <td class="hide-m muted">${r.last ? fmtDate(r.last) : ""}</td></tr>`;
+      }).join("")}
+    </table></div>` : `<div class="empty">No matches saved yet. Split the teams on Match day and press <b>Save match</b>.</div>`}
+  </section>`;
+}
+
+function viewHistory() {
+  const ss = state.sessions.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
+  if (!ss.length) return `<div class="card empty">No matches saved yet.</div>`;
+  const list = arr => (arr || []).map(p => `${posTag(p.position)} ${esc(byId(p.id)?.name || p.name)}`).join("<br>");
+  return `<section class="card"><h2>Match history <span class="pill">${ss.length}</span></h2>
+    ${ss.map(s => {
+      const scored = Number.isFinite(s.scoreA) && Number.isFinite(s.scoreB);
+      return `<div class="session">
+        <div class="row between">
+          <b>${fmtDate(s.date)}</b>
+          <span class="pill">${esc(s.format || "")}</span>
+        </div>
+        <div class="row" style="margin:10px 0">
+          <span style="color:${TEAMS.A.color};font-weight:700">${esc(TEAMS.A.name)}</span>
+          ${canEdit()
+            ? `<input type="number" min="0" id="sa-${s.id}" value="${scored ? s.scoreA : ""}"> : <input type="number" min="0" id="sb-${s.id}" value="${scored ? s.scoreB : ""}">`
+            : `<span class="score">${scored ? `${s.scoreA} : ${s.scoreB}` : "– : –"}</span>`}
+          <span style="color:${TEAMS.B.color};font-weight:700">${esc(TEAMS.B.name)}</span>
+          ${canEdit() ? `<button data-action="save-score" data-id="${s.id}">Save score</button><button class="danger" data-action="delete-session" data-id="${s.id}">Delete</button>` : ""}
+        </div>
+        <div class="teams" style="margin-top:6px">
+          <div class="team" style="border-top-color:${TEAMS.A.color};font-size:14px;line-height:1.8">${list(s.teamA)}</div>
+          <div class="team" style="border-top-color:${TEAMS.B.color};font-size:14px;line-height:1.8">${list(s.teamB)}</div>
+        </div>
+      </div>`;
+    }).join("")}
+  </section>`;
+}
+
+/* ----------------------------- PLAYER FORM -------------------------- */
+function openPlayerForm(id) {
+  const p = id ? byId(id) : { name: "", position: "MID", rating: 3, active: true, pairId: null, pairMode: "apart" };
+  const others = state.players.filter(o => o.id !== id).sort((a, b) => a.name.localeCompare(b.name));
+  const m = document.getElementById("modal");
+  m.innerHTML = `<div class="dialog">
+    <h2>${id ? "Edit player" : "Add player"}</h2>
+    <div class="field"><label>Name</label><input type="text" id="f-name" value="${esc(p.name)}" maxlength="40" autocomplete="off"></div>
+    <div class="row" style="gap:12px">
+      <div class="field" style="flex:1"><label>Position</label><select id="f-pos">${POSITIONS.map(k => `<option value="${k}" ${p.position === k ? "selected" : ""}>${POS_LABEL[k]}</option>`).join("")}</select></div>
+      <div class="field" style="flex:1"><label>Rating</label><select id="f-rating">${[1, 2, 3, 4, 5].map(r => `<option value="${r}" ${p.rating === r ? "selected" : ""}>${r} ${stars(r)}</option>`).join("")}</select></div>
+    </div>
+    <div class="field"><label>Pair with</label>
+      <select id="f-pair"><option value="">— no pair —</option>
+        ${others.map(o => `<option value="${o.id}" ${p.pairId === o.id ? "selected" : ""}>${esc(o.name)} (${o.position})${o.pairId && o.pairId !== id ? ` · now paired with ${esc(byId(o.pairId)?.name || "?")}` : ""}</option>`).join("")}
+      </select>
+    </div>
+    <div class="field">
+      <label class="radio"><input type="radio" name="f-mode" value="apart" ${p.pairMode !== "together" ? "checked" : ""}> <span>⚖️ <b>Split apart</b>: similar level, one goes to each team</span></label>
+      <label class="radio"><input type="radio" name="f-mode" value="together" ${p.pairMode === "together" ? "checked" : ""}> <span>🤝 <b>Keep together</b>: always on the same team</span></label>
+    </div>
+    <label class="radio"><input type="checkbox" id="f-active" ${p.active !== false ? "checked" : ""}> Active (shows on Match day)</label>
+    <div class="row between" style="margin-top:16px">
+      ${id ? `<button class="danger" data-action="delete-player" data-id="${id}">Delete</button>` : "<span></span>"}
+      <div class="row"><button data-action="close-modal">Cancel</button><button class="primary" data-action="save-player" data-id="${id || ""}">Save</button></div>
+    </div>
+  </div>`;
+  m.classList.add("open");
+  setTimeout(() => document.getElementById("f-name")?.focus(), 30);
+}
+const closeModal = () => { const m = document.getElementById("modal"); m.classList.remove("open"); m.innerHTML = ""; };
+
+async function savePlayer(existingId) {
+  const name = document.getElementById("f-name").value.trim();
+  if (!name) return toast("Please enter a name");
+  const id = existingId || api.newId();
+  const old = existingId ? byId(existingId) : null;
+  const pairId = document.getElementById("f-pair").value || null;
+  const pairMode = pairId ? document.querySelector("input[name=f-mode]:checked").value : null;
+  const updates = new Map();
+  const put = (pid, data) => updates.set(pid, { ...(updates.get(pid) || {}), id: pid, ...data });
+  // break old links that change
+  if (old?.pairId && old.pairId !== pairId) put(old.pairId, { pairId: null, pairMode: null });
+  if (pairId) {
+    const mate = byId(pairId);
+    if (mate?.pairId && mate.pairId !== id) put(mate.pairId, { pairId: null, pairMode: null });
+    put(pairId, { pairId: id, pairMode });
+  }
+  put(id, {
+    name, position: document.getElementById("f-pos").value,
+    rating: +document.getElementById("f-rating").value,
+    active: document.getElementById("f-active").checked, pairId, pairMode
+  });
+  closeModal();
+  await guarded(() => api.upsertPlayers([...updates.values()]), existingId ? "Player updated" : `${name} added`);
+  if (!existingId) { state.checked.add(id); ls.set("ft_checked", [...state.checked]); render(); }
+}
+
+/* ------------------------------ ACTIONS ----------------------------- */
+function shareText() {
+  const { A, B } = currentTeams();
+  const order = arr => arr.slice().sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position));
+  const dateEl = document.getElementById("matchDate");
+  const d = dateEl ? dateEl.value : today();
+  const block = (k, arr) => `${TEAMS[k].emoji} *${TEAMS[k].name}*\n` + order(arr).map(p => `• ${p.name} (${p.position})`).join("\n");
+  return `⚽ Football Tuesday · ${fmtDate(d)} (${formatLabel(A.length + B.length)})\n\n${block("A", A)}\n\n${block("B", B)}`;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+document.addEventListener("click", async e => {
+  const tab = e.target.closest("#tabs button");
+  if (tab) { state.tab = tab.dataset.tab; render(); return; }
+  if (e.target.id === "modal") return closeModal();
+  const el = e.target.closest("[data-action]");
+  if (!el) return;
+  const { action, id } = el.dataset;
+  switch (action) {
+    case "signin": guarded(api.signIn); break;
+    case "signout": api.signOut(); break;
+    case "check-all": state.players.filter(p => p.active !== false).forEach(p => state.checked.add(p.id)); ls.set("ft_checked", [...state.checked]); render(); break;
+    case "check-none": state.checked.clear(); ls.set("ft_checked", []); render(); break;
+    case "split": splitTeams(); break;
+    case "pick": {
+      const team = el.dataset.team;
+      const sel = state.selected;
+      if (!sel || sel.id === id) state.selected = sel?.id === id ? null : { team, id };
+      else if (sel.team === team) state.selected = { team, id };
+      else {
+        const T = state.teams;
+        T[sel.team][T[sel.team].indexOf(sel.id)] = id;
+        T[team][T[team].indexOf(id)] = sel.id;
+        state.selected = null;
+        toast("Players swapped");
+      }
+      render(); break;
+    }
+    case "share": window.open("https://wa.me/?text=" + encodeURIComponent(shareText()), "_blank"); break;
+    case "copy":
+      try { await navigator.clipboard.writeText(shareText()); toast("Line-ups copied"); }
+      catch { toast("Copy not allowed in this browser"); }
+      break;
+    case "save-match": {
+      const { A, B } = currentTeams();
+      const date = document.getElementById("matchDate").value || today();
+      const snap = arr => arr.map(p => ({ id: p.id, name: p.name, position: p.position }));
+      await guarded(() => api.addSession({ date, format: formatLabel(A.length + B.length), teamA: snap(A), teamB: snap(B), scoreA: null, scoreB: null, createdAt: Date.now() }), "Match saved ✔");
+      break;
+    }
+    case "save-score": {
+      const a = document.getElementById("sa-" + id).value, b = document.getElementById("sb-" + id).value;
+      const both = a !== "" && b !== "";
+      await guarded(() => api.updateSession(id, { scoreA: both ? +a : null, scoreB: both ? +b : null }), both ? "Score saved" : "Score cleared");
+      break;
+    }
+    case "delete-session": if (confirm("Delete this match? Appearances will be recalculated.")) await guarded(() => api.deleteSession(id), "Match deleted"); break;
+    case "new-player": openPlayerForm(null); break;
+    case "edit-player": openPlayerForm(id); break;
+    case "close-modal": closeModal(); break;
+    case "save-player": await savePlayer(id); break;
+    case "delete-player": {
+      const p = byId(id);
+      if (confirm(`Delete ${p?.name}? Their past appearances stay in the stats.`)) {
+        closeModal(); state.checked.delete(id); ls.set("ft_checked", [...state.checked]);
+        await guarded(() => api.deletePlayer(id), "Player deleted");
+      }
+      break;
+    }
+  }
+});
+
+document.addEventListener("change", e => {
+  const el = e.target.closest("[data-change]");
+  if (!el) return;
+  if (el.dataset.change === "toggle-check") {
+    el.checked ? state.checked.add(el.dataset.id) : state.checked.delete(el.dataset.id);
+    ls.set("ft_checked", [...state.checked]); render();
+  }
+  if (el.dataset.change === "stats-year") { state.statsYear = el.value; render(); }
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") closeModal();
+  if (e.key === "Enter" && document.getElementById("modal").classList.contains("open") && e.target.id === "f-name") document.querySelector("[data-action=save-player]")?.click();
+});
+
+let lastPortrait = window.innerWidth < 700;
+window.addEventListener("resize", () => {
+  const p = window.innerWidth < 700;
+  if (p !== lastPortrait && state.tab === "match" && state.teams) { lastPortrait = p; render(); }
+});
+
+(LOCAL_MODE ? initLocal() : initFirebase()).catch(err => {
+  console.error(err);
+  document.getElementById("app").innerHTML = `<div class="card empty">Could not start the app: ${esc(err.message)}</div>`;
+});
+</script>
+</body>
+</html>

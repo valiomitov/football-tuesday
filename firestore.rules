@@ -1,0 +1,25 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Organisers who may add/edit players and save matches.
+    // Keep this list in sync with ADMIN_EMAILS in index.html.
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email in [
+          'valio.mitov@gmail.com'
+        ];
+    }
+
+    match /players/{id} {
+      allow read: if true;          // public: anyone can see the squad
+      allow write: if isAdmin();
+    }
+
+    match /sessions/{id} {
+      allow read: if true;          // public: anyone can see stats & history
+      allow write: if isAdmin();
+    }
+  }
+}
