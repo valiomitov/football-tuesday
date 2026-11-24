@@ -95,6 +95,18 @@
   .cal-cell.today .dn{background:var(--accent);color:#06210f;border-radius:6px;padding:0 5px;align-self:flex-start}
   .cal-cell.sel{outline:2px solid #ffe14d}
   .cal-cell .ev{font-size:12px;font-weight:700}
+  .lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .lang button{border:none;border-radius:0;padding:6px 10px;font-size:13px;background:none;color:var(--muted)}
+  .lang button.on{background:var(--accent);color:#06210f;font-weight:700}
+  .help{padding-left:20px;line-height:1.6} .help li{margin-bottom:6px}
+  .card h3{margin:16px 0 4px;font-size:15px} .card p{line-height:1.55;margin:4px 0}
+  .ratings{margin-top:12px;padding:12px;border-radius:10px;background:#122019;border:1px solid var(--line)}
+  .motm{margin:10px 0 4px;font-size:15px}
+  .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 16px;margin-top:8px}
+  .rrow{display:grid;grid-template-columns:1fr 80px 34px;gap:8px;align-items:center;font-size:14px}
+  .rbar{height:8px;background:#0b1510;border-radius:4px;overflow:hidden}
+  .rbar span{display:block;height:100%;background:var(--gk)}
+  .rate-row{display:grid;grid-template-columns:1fr 70px 44px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
   @media (max-width:640px){ .cal-cell{min-height:48px;padding:4px;font-size:12px} .cal-cell .ev{font-size:10px} }
   @media (max-width:640px){ .teams{grid-template-columns:1fr} main{padding:10px} th.hide-m,td.hide-m{display:none}
     .checkgrid{grid-template-columns:1fr 1fr;gap:6px} .chk{padding:8px 7px;font-size:14px} .pitchwrap{max-width:460px;margin:0 auto} }
@@ -103,7 +115,10 @@
 <body>
 <header>
   <h1>⚽ Football Tuesday</h1>
-  <div class="auth" id="auth"></div>
+  <div class="row" style="gap:10px">
+    <div class="auth" id="auth"></div>
+    <div class="lang" data-notr><button data-action="lang" data-lang="bg">БГ</button><button data-action="lang" data-lang="en">EN</button></div>
+  </div>
 </header>
 <nav id="tabs">
   <button data-tab="match" class="on">Match day</button>
@@ -111,6 +126,7 @@
   <button data-tab="stats">Stats</button>
   <button data-tab="calendar">Calendar</button>
   <button data-tab="history">History</button>
+  <button data-tab="help">❓ How it works</button>
 </nav>
 <main id="app"><div class="empty">Loading…</div></main>
 <div id="modal"></div>
@@ -146,6 +162,114 @@ const ls = {
   get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
 };
+
+/* ------------------------------ LANGUAGE ---------------------------- */
+// UI is written in English; Bulgarian is applied by translating rendered text (exact phrases + patterns).
+const LANG = ls.get("ft_lang", null) || ((navigator.languages || [navigator.language]).some(l => /^bg/i.test(l || "")) ? "bg" : "en");
+document.documentElement.lang = LANG;
+const LOCALE = LANG === "bg" ? "bg-BG" : "en-GB";
+const BG = {
+  "Match day": "Ден на мача", "Players": "Играчи", "Stats": "Статистика", "Calendar": "Календар", "History": "История", "❓ How it works": "❓ Как работи",
+  "Loading…": "Зареждане…", "DEMO MODE · data saved in this browser only": "ДЕМО · данните са само в този браузър",
+  "View only": "Само преглед", "Sign out": "Изход", "Organiser sign in": "Вход за организатор",
+  "Next match": "Следващ мач", "playing now ⚽": "играем сега ⚽",
+  "Who's playing tonight?": "Кой играе днес?", "All": "Всички", "None": "Никой",
+  "Odd number of players: one team will have one extra.": "Нечетен брой играчи: единият отбор ще има един повече.",
+  "⚡ Split teams": "⚡ Раздели отборите", "Line-ups": "Състави", "🎲 Re-roll": "🎲 Ново теглене", "📋 Copy": "📋 Копирай",
+  "Tap a player, then tap a player in the other team to swap them.": "Докосни играч, после играч от другия отбор, за да ги смениш.",
+  "Match date": "Дата на мача", "💾 Save match": "💾 Запази мача", "Save match": "Запази мача",
+  "Saving counts appearances. Add the score later in History.": "Записът брои участията. Резултатът се добавя после в История.",
+  "Black": "Черни", "White": "Бели", "⚫ Black": "⚫ Черни", "⚪ White": "⚪ Бели", "White ⚪": "Бели ⚪",
+  "Last match": "Последен мач", "↺ Use these teams again": "↺ Използвай същите отбори", "↺ Use these teams": "↺ Използвай тези отбори",
+  "No players yet.": "Още няма играчи.", "No players yet. Add them in the": "Още няма играчи. Добави ги в", "tab.": "раздела.",
+  "Squad": "Отбор", "+ Add player": "+ Добави играч", "Add player": "Добави играч", "Edit player": "Редактирай играч",
+  "⚖️ Equivalent player": "⚖️ Еквивалентен играч", "Equivalent player": "Еквивалентен играч",
+  "= a player of similar level. When both play, they go to opposite teams. (Optional: 🤝 mark two players to always play on the same team.)":
+    "= играч от сходно ниво. Когато играят и двамата, отиват в различни отбори. (По избор: 🤝 двама, които винаги играят в един отбор.)",
+  "Name": "Име", "Positions": "Позиции", "Position": "Позиция", "Rating": "Рейтинг", "Status": "Статус", "Active": "Активен", "Inactive": "Неактивен", "Edit": "Редакция",
+  "Goalkeeper": "Вратар", "Defender": "Защитник", "Midfielder": "Полузащитник", "Forward": "Нападател",
+  "Alternative position 1": "Алтернативна позиция 1", "Alternative position 2": "Алтернативна позиция 2",
+  "— none —": "— няма —", "— skip —": "— пропусни —", "Opposite teams": "В различни отбори", "(equivalent level)": "(сходно ниво)",
+  "Same team": "В един отбор", "(always play together)": "(винаги заедно)", "Active (shows on Match day)": "Активен (показва се в Ден на мача)",
+  "Cancel": "Отказ", "Save": "Запази", "Delete": "Изтрий", "Submit": "Изпрати", "Save score": "Запази резултата",
+  "Statistics": "Статистика", "All time": "За цялото време", "Matches played": "Изиграни мачове", "Different players": "Различни играчи",
+  "Most appearances": "Най-много мачове", "Best win rate (min 3 results)": "Най-висок % победи (мин. 3 резултата)",
+  "Best avg rating (min 2 rated matches)": "Най-добра ср. оценка (мин. 2 оценени мача)",
+  "Player": "Играч", "Apps": "Мачове", "W": "П", "D": "Р", "L": "З", "Win %": "% победи", "⭐ Avg": "⭐ Ср.", "Last played": "Последен мач",
+  "No matches saved yet. Split the teams on Match day and press": "Още няма запазени мачове. Раздели отборите в Ден на мача и натисни",
+  "No matches saved yet.": "Още няма запазени мачове.", "Match history": "История на мачовете",
+  "📅 Calendar": "📅 Календар", "➕ Google Calendar": "➕ Google Календар", "⬇ Add to phone / Outlook (.ics)": "⬇ Добави в телефона / Outlook (.ics)",
+  "Every Tuesday 20:00–21:00. Tap a Tuesday to see the line-ups from that day.": "Всеки вторник 20:00–21:00. Докосни вторник, за да видиш съставите от този ден.",
+  "Mon": "Пн", "Tue": "Вт", "Wed": "Ср", "Thu": "Чт", "Fri": "Пт", "Sat": "Сб", "Sun": "Нд",
+  "⚽ saved": "⚽ запазен", "next": "следващ", "Back to this month": "Към текущия месец", "and press": "и натисни",
+  "⭐ Player ratings": "⭐ Оценки на играчите", "⭐ Rate players": "⭐ Оцени играчите", "✏️ Change my vote": "✏️ Промени гласа си",
+  "⭐ Rate the players": "⭐ Оцени играчите", "anonymous": "анонимен", "Player of the match": "Играч на мача",
+  ": only averages are shown, never who gave which mark. One vote per phone/browser, and you can change it until the next match.":
+    ": показват се само средните оценки, никога кой каква оценка е дал. Един глас от телефон/браузър, може да се променя до следващия мач.",
+  "Who are you? (not saved, only hides you from the list)": "Кой си ти? (не се записва, само те скрива от списъка)",
+  "1 = poor · 10 = brilliant · 🏆 = player of the match": "1 = слабо · 10 = блестящо · 🏆 = играч на мача",
+  "📲 Send rating link": "📲 Изпрати линк за оценки",
+  "Thanks! Your anonymous vote is saved ⭐": "Благодарим! Анонимният ти глас е записан ⭐",
+  "Give at least one rating or pick a player of the match": "Дай поне една оценка или избери играч на мача",
+  "Tick at least 2 players": "Отбележи поне 2 играчи", "Players swapped": "Играчите са разменени", "Line-ups copied": "Съставите са копирани",
+  "Line-ups copied. Opening Viber… (if it doesn't open, just paste in the group)": "Съставите са копирани. Отваряме Viber… (ако не се отвори, просто постави в групата)",
+  "Rating link copied. Opening Viber…": "Линкът за оценки е копиран. Отваряме Viber…",
+  "Please enter a name": "Въведи име", "Player updated": "Играчът е обновен", "Player deleted": "Играчът е изтрит",
+  "Match deleted": "Мачът е изтрит", "Score saved": "Резултатът е записан", "Score cleared": "Резултатът е изчистен",
+  "Copy not allowed in this browser": "Копирането не е позволено в този браузър",
+  "Calendar file downloaded. Open it to add the weekly match": "Файлът е изтеглен. Отвори го, за да добавиш седмичния мач",
+  "Delete this match? Appearances will be recalculated.": "Да изтрия ли мача? Участията ще бъдат преизчислени.",
+  "Voting is closed for this match.": "Гласуването за този мач е затворено.", "Match not found.": "Мачът не е намерен.",
+  "Rate the players": "Оцени играчите"
+};
+const pl = (n, one, many) => `${n} ${+n === 1 ? one : many}`;
+const BG_RX = [
+  [/^(\d+) in · (\d+) v (\d+)$/, "$1 идват · $2 на $3"], [/^(\d+) v (\d+)$/, "$1 на $2"],
+  [/^(\d+) players?$/, (m, n) => pl(n, "играч", "играчи")],
+  [/^in (\d+)d (\d+)h$/, "след $1д $2ч"], [/^in (\d+)h (\d+)m$/, "след $1ч $2мин"], [/^in (\d+) min$/, "след $1 мин"],
+  [/^Strength (\S+) · avg (\S+) · (.*)$/, "Сила $1 · ср. $2 · $3"],
+  [/^Most appearances \((\d+)\)$/, "Най-много мачове ($1)"],
+  [/^Best win rate \((\d+)%, min 3 results\)$/, "Най-висок % победи ($1%, мин. 3 резултата)"],
+  [/^Best avg rating \((.+)\)$/, "Най-добра ср. оценка ($1)"],
+  [/^(\d+) votes? · anonymous$/, (m, n) => pl(n, "глас", "гласа") + " · анонимно"],
+  [/^\((\d+) votes?\)$/, (m, n) => "(" + pl(n, "глас", "гласа") + ")"],
+  [/^🏆 Player of the match:$/, "🏆 Играч на мача:"],
+  [/^No ratings yet\. Played on (.+)\? Rate your mates\. Nobody sees who voted what\.$/, "Още няма оценки. Игра ли на $1? Оцени съотборниците си. Никой не вижда кой как е гласувал."],
+  [/^No line-ups saved for (.+)\. Split the teams on$/, "Няма запазени състави за $1. Раздели отборите в"],
+  [/^No line-ups saved for (.+)\.$/, "Няма запазени състави за $1."],
+  [/^(.+)\. Your vote is$/, "$1. Гласът ти е"],
+  [/^(.+) · now equivalent to (.+)$/, "$1 · сега еквивалентен на $2"],
+  [/^Match on (.+) saved ✔$/, "Мачът на $1 е запазен ✔"], [/^Line-ups for (.+) updated ✔$/, "Съставите за $1 са обновени ✔"],
+  [/^Teams loaded from (.+)$/, "Заредени отбори от $1"], [/^(.+) added$/, "$1 е добавен"],
+  [/^Save failed: you are not an admin$/, "Неуспешен запис: нямаш права на организатор"], [/^Save failed: (.+)$/, "Неуспешен запис: $1"],
+  [/^Could not load (players|matches): (.+)$/, "Грешка при зареждане: $2"], [/^Voting unavailable: (.+)$/, "Гласуването не е достъпно: $1"],
+  [/^Delete (.+)\? Their past appearances stay in the stats\.$/, "Да изтрия ли $1? Участията му остават в статистиката."]
+];
+function tr(text) {
+  if (LANG !== "bg" || !text) return text;
+  const core = text.trim(); if (!core) return text;
+  let out = BG[core];
+  if (out == null) for (const [rx, r] of BG_RX) if (rx.test(core)) { out = core.replace(rx, r); break; }
+  if (out == null) return text;
+  return text.slice(0, text.indexOf(core)) + out + text.slice(text.indexOf(core) + core.length);
+}
+const skip = n => { const e = n.nodeType === 1 ? n : n.parentElement; return !e || e.closest("[data-notr],script,style"); };
+function translateNode(n) {
+  if (n.nodeType === 3) { if (!skip(n)) { const t = tr(n.nodeValue); if (t !== n.nodeValue) n.nodeValue = t; } return; }
+  if (n.nodeType !== 1 || skip(n)) return;
+  for (const a of ["title", "placeholder"]) if (n.hasAttribute?.(a)) { const v = tr(n.getAttribute(a)); if (v !== n.getAttribute(a)) n.setAttribute(a, v); }
+  const w = document.createTreeWalker(n, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let x; while ((x = w.nextNode())) {
+    if (x.nodeType === 3) { if (!skip(x)) { const t = tr(x.nodeValue); if (t !== x.nodeValue) x.nodeValue = t; } }
+    else for (const a of ["title", "placeholder"]) if (x.hasAttribute(a)) { const v = tr(x.getAttribute(a)); if (v !== x.getAttribute(a)) x.setAttribute(a, v); }
+  }
+}
+if (LANG === "bg") {
+  translateNode(document.body);
+  new MutationObserver(ms => ms.forEach(m => m.type === "characterData" ? translateNode(m.target) : m.addedNodes.forEach(translateNode)))
+    .observe(document.body, { childList: true, subtree: true, characterData: true });
+}
+document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === LANG));
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -170,7 +294,7 @@ function countdown(dateStr) {
   const days = Math.floor(ms / 864e5), hrs = Math.floor(ms % 864e5 / 36e5), mins = Math.floor(ms % 36e5 / 6e4);
   return days ? `in ${days}d ${hrs}h` : hrs ? `in ${hrs}h ${mins}m` : `in ${mins} min`;
 }
-const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString(LOCALE, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 const stars = n => "★".repeat(n || 0) + "☆".repeat(5 - (n || 0));
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
@@ -185,6 +309,7 @@ const state = {
   statsYear: "all",
   calMonth: null,       // "YYYY-MM" shown in the calendar
   calSelected: null,    // selected date in the calendar
+  votes: [],            // anonymous ballots: { id, sessionId, uid, ratings:{playerId:1-10}, motm }
   ready: { players: false, sessions: false }
 };
 
@@ -208,6 +333,7 @@ function demoPlayers() {
 }
 
 async function initLocal() {
+  state.myVoter = ls.get("ft_voter", null);
   let players = ls.get("ft_players", null);
   let sessions = ls.get("ft_sessions", []);
   if (!players) {
@@ -239,6 +365,14 @@ async function initLocal() {
   api.updateSession = async (id, data) => { Object.assign(sessions.find(s => s.id === id), data); commit(); };
   api.deleteSession = async id => { sessions = sessions.filter(s => s.id !== id); commit(); };
   api.signIn = api.signOut = async () => {};
+  let votes = ls.get("ft_votes", []);
+  state.votes = votes;
+  api.voterId = async () => { let v = ls.get("ft_voter", null); if (!v) { v = uid(); ls.set("ft_voter", v); } return v; };
+  api.saveVote = async (sessionId, data) => {
+    const voter = await api.voterId(), id = sessionId + "__" + voter;
+    votes = votes.filter(v => v.id !== id).concat([{ id, sessionId, uid: voter, ...data }]);
+    ls.set("ft_votes", votes); state.votes = votes; render();
+  };
   commit();
 }
 
@@ -269,7 +403,19 @@ async function initFirebase() {
   api.signIn = () => au.signInWithPopup(auth, new au.GoogleAuthProvider());
   api.signOut = () => au.signOut(auth);
 
-  au.onAuthStateChanged(auth, u => { state.user = u; render(); });
+  api.voterId = async () => {
+    if (!auth.currentUser) await au.signInAnonymously(auth);   // invisible, no name or email
+    return auth.currentUser.uid;
+  };
+  api.saveVote = async (sessionId, data) => {
+    const voter = await api.voterId();
+    await fs.setDoc(fs.doc(db, "votes", sessionId + "__" + voter), { sessionId, uid: voter, ...data, updatedAt: Date.now() });
+  };
+  fs.onSnapshot(fs.collection(db, "votes"), snap => {
+    state.votes = snap.docs.map(d => ({ id: d.id, ...d.data() })); render();
+  }, err => console.warn("votes", err.message));
+
+  au.onAuthStateChanged(auth, u => { state.user = u; state.myVoter = u ? u.uid : null; render(); });
   fs.onSnapshot(fs.collection(db, "players"), snap => {
     state.players = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     state.ready.players = true; render();
@@ -358,13 +504,13 @@ function render() {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === state.tab));
   const app = document.getElementById("app");
   if (!state.ready.players) { app.innerHTML = `<div class="empty">Loading…</div>`; return; }
-  app.innerHTML = { match: viewMatch, players: viewPlayers, stats: viewStats, calendar: viewCalendar, history: viewHistory }[state.tab]();
+  app.innerHTML = { match: viewMatch, players: viewPlayers, stats: viewStats, calendar: viewCalendar, history: viewHistory, help: viewHelp, rate: viewRate }[state.tab]();
 }
 
 function renderAuth() {
   const el = document.getElementById("auth");
   if (LOCAL_MODE) { el.innerHTML = `<span class="badge">DEMO MODE · data saved in this browser only</span>`; return; }
-  if (state.user) {
+  if (state.user && !state.user.isAnonymous) {
     el.innerHTML = `${canEdit() ? "" : `<span class="badge">View only</span>`}<span>${esc(state.user.email)}</span><button data-action="signout">Sign out</button>`;
   } else el.innerHTML = `<button data-action="signin">Organiser sign in</button>`;
 }
@@ -409,6 +555,168 @@ function sortedSessions() {
   return state.sessions.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
 }
 
+
+/* ----------------------------- HELP PAGES --------------------------- */
+const RATE_HELP = {
+  en: `<h2>⭐ How the anonymous ratings work</h2>
+    <ol class="help">
+      <li>After the match, everyone who played opens this link on their phone.</li>
+      <li>Choose your own name (only so you can't rate yourself; <b>it is not saved</b>).</li>
+      <li>Give each player a mark from <b>1 to 10</b> (skip anyone you're not sure about) and pick one <b>🏆 player of the match</b>.</li>
+      <li>Press <b>Submit</b>. Your vote is stored with a random code for this phone, <b>never with your name</b>. Nobody, not even the organiser, can see who gave which mark.</li>
+      <li>Everyone sees only the <b>averages</b> and the number of votes. One vote per phone; you can change it until the next Tuesday.</li>
+    </ol>`,
+  bg: `<h2>⭐ Как работят анонимните оценки</h2>
+    <ol class="help">
+      <li>След мача всеки, който е играл, отваря този линк на телефона си.</li>
+      <li>Избери своето име (само за да не оцениш себе си; <b>не се записва</b>).</li>
+      <li>Дай на всеки играч оценка от <b>1 до 10</b> (пропусни, ако не си сигурен) и избери <b>🏆 играч на мача</b>.</li>
+      <li>Натисни <b>Изпрати</b>. Гласът се пази със случаен код за този телефон, <b>никога с името ти</b>. Никой, дори организаторът, не вижда кой каква оценка е дал.</li>
+      <li>Всички виждат само <b>средните оценки</b> и броя гласове. Един глас от телефон; може да го промениш до следващия вторник.</li>
+    </ol>`
+};
+const HELP = {
+  en: `<h2>❓ How Football Tuesday works</h2>
+    <h3>📅 Every Tuesday 20:00–21:00</h3>
+    <p>The top of <b>Match day</b> shows the next game with a countdown. In <b>Calendar</b> you can add the weekly game to Google Calendar or your phone, and tap any Tuesday to see who played.</p>
+    <h3>✅ Who's playing</h3>
+    <p>On <b>Match day</b> tick the players who came. The app shows the format (6 v 6, 7 v 7…).</p>
+    <h3>⚡ How the teams are split</h3>
+    <ul class="help">
+      <li>Every player has a <b>rating 1–5</b>, a <b>main position</b> and up to <b>two alternative positions</b>.</li>
+      <li><b>⚖️ Equivalent players</b> (similar level) always go to opposite teams. <b>🤝 Same team</b> players always play together.</li>
+      <li>The app tries thousands of random splits and keeps the fairest: closest total strength, balanced positions and a goalkeeper on each side (a player with GK as an alternative can go in goal).</li>
+      <li><b>🎲 Re-roll</b> gives another fair split. Tap two players on the pitch to swap them by hand.</li>
+    </ul>
+    <h3>💜 Share and save</h3>
+    <p><b>Viber</b> sends the line-ups to the group. The organiser presses <b>Save match</b> to record appearances and adds the score later in <b>History</b>.</p>
+    <h3>⭐ Anonymous ratings</h3>
+    <p>After the game the organiser sends the <b>rating link</b> to the group. Everyone rates the others 1–10 and picks a player of the match. Only averages are shown, never who voted what.</p>
+    <h3>📊 Stats</h3>
+    <p>Appearances, wins/draws/losses, average rating and player-of-the-match awards for every player.</p>
+    <h3>🔒 Who can change things</h3>
+    <p>Everyone can view and vote. Only the organiser (signed in with Google) can add players and save matches.</p>`,
+  bg: `<h2>❓ Как работи Football Tuesday</h2>
+    <h3>📅 Всеки вторник 20:00–21:00</h3>
+    <p>Най-горе в <b>Ден на мача</b> е следващият мач с обратно броене. В <b>Календар</b> можеш да добавиш седмичния мач в Google Календар или телефона и да видиш кой е играл на всеки вторник.</p>
+    <h3>✅ Кой играе</h3>
+    <p>В <b>Ден на мача</b> отбележи кои са дошли. Приложението показва формата (6 на 6, 7 на 7…).</p>
+    <h3>⚡ Как се делят отборите</h3>
+    <ul class="help">
+      <li>Всеки играч има <b>рейтинг 1–5</b>, <b>основна позиция</b> и до <b>две алтернативни позиции</b>.</li>
+      <li><b>⚖️ Еквивалентните играчи</b> (сходно ниво) винаги са в различни отбори. <b>🤝 В един отбор</b> винаги играят заедно.</li>
+      <li>Приложението пробва хиляди случайни разпределения и избира най-честното: най-близка обща сила, балансирани позиции и вратар във всеки отбор (играч с GK като алтернатива може да застане на вратата).</li>
+      <li><b>🎲 Ново теглене</b> дава друго честно разпределение. Докосни двама играчи на терена, за да ги смениш ръчно.</li>
+    </ul>
+    <h3>💜 Споделяне и запис</h3>
+    <p><b>Viber</b> изпраща съставите в групата. Организаторът натиска <b>Запази мача</b>, за да се отчетат участията, а резултата добавя после в <b>История</b>.</p>
+    <h3>⭐ Анонимни оценки</h3>
+    <p>След мача организаторът пуска <b>линка за оценки</b> в групата. Всеки оценява останалите от 1 до 10 и избира играч на мача. Показват се само средните оценки, никога кой как е гласувал.</p>
+    <h3>📊 Статистика</h3>
+    <p>Участия, победи/равни/загуби, средна оценка и награди „играч на мача“ за всеки играч.</p>
+    <h3>🔒 Кой може да променя</h3>
+    <p>Всеки може да разглежда и да гласува. Само организаторът (с вход през Google) добавя играчи и записва мачове.</p>`
+};
+function viewHelp() {
+  return `<section class="card" data-notr>${HELP[LANG]}</section><section class="card" data-notr>${RATE_HELP[LANG]}</section>`;
+}
+function rateLink(id) { return location.origin + location.pathname + "?rate=" + encodeURIComponent(id); }
+function viewRate() {
+  const s = state.sessions.find(x => x.id === state.rateSession);
+  if (!state.ready.sessions) return `<div class="card empty">Loading…</div>`;
+  if (!s) return `<div class="card empty">Match not found.</div>`;
+  return `<section class="card" data-notr>${RATE_HELP[LANG]}</section>
+    <section class="card">
+      <h2>${fmtDate(s.date)} · ${MATCH.start}–${MATCH.end}</h2>
+      ${sessionBody(s, false)}
+      ${resultsBlock(s) || `<p class="hint">Voting is closed for this match.</p>`}
+    </section>`;
+}
+/* ------------------------- ANONYMOUS RATINGS ------------------------ */
+// Only totals are ever shown. Ballots store a random browser id, never a name.
+function voteResults(sessionId) {
+  const ballots = state.votes.filter(v => v.sessionId === sessionId);
+  const sum = {}, cnt = {}, motm = {};
+  for (const b of ballots) {
+    for (const [pid, r] of Object.entries(b.ratings || {})) { if (r >= 1 && r <= 10) { sum[pid] = (sum[pid] || 0) + r; cnt[pid] = (cnt[pid] || 0) + 1; } }
+    if (b.motm) motm[b.motm] = (motm[b.motm] || 0) + 1;
+  }
+  const avg = Object.fromEntries(Object.keys(sum).map(pid => [pid, sum[pid] / cnt[pid]]));
+  const topMotm = Object.entries(motm).sort((a, b) => b[1] - a[1]);
+  const winner = topMotm.length && (topMotm.length === 1 || topMotm[0][1] > topMotm[1][1]) ? topMotm[0][0] : null;
+  return { voters: ballots.length, avg, cnt, motm, winner };
+}
+
+function sessionPlayers(s) { return [...(s.teamA || []), ...(s.teamB || [])]; }
+const pname = pl => byId(pl.id)?.name || pl.name;
+
+function votingOpen(s) {
+  const t = today();
+  if (s.date > t) return false;
+  if (s.date === t && new Date().getHours() < +MATCH.start.split(":")[0]) return false;
+  const latest = sortedSessions().find(x => x.date <= t);
+  return latest && latest.id === s.id;            // only the most recent played match
+}
+
+function resultsBlock(s) {
+  const r = voteResults(s.id);
+  const open = votingOpen(s);
+  if (!r.voters && !open) return "";
+  const ranked = sessionPlayers(s).filter(pl => r.avg[pl.id] != null).sort((a, b) => r.avg[b.id] - r.avg[a.id]);
+  const mine = state.myVoter && state.votes.find(v => v.sessionId === s.id && v.uid === state.myVoter);
+  return `<div class="ratings">
+    <div class="row between">
+      <b>⭐ Player ratings <span class="pill">${r.voters} vote${r.voters === 1 ? "" : "s"} · anonymous</span></b>
+      <div class="row">
+        ${open ? `<button data-action="share-rate" data-id="${s.id}">📲 Send rating link</button>` : ""}
+        ${open ? `<button class="primary" data-action="rate" data-id="${s.id}">${mine ? "✏️ Change my vote" : "⭐ Rate players"}</button>` : ""}
+      </div>
+    </div>
+    ${r.winner ? `<div class="motm">🏆 Player of the match: <b>${esc(pname({ id: r.winner, name: sessionPlayers(s).find(p => p.id === r.winner)?.name }))}</b> <span class="muted">(${r.motm[r.winner]} vote${r.motm[r.winner] === 1 ? "" : "s"})</span></div>` : ""}
+    ${ranked.length ? `<div class="rgrid">${ranked.map(pl => `<div class="rrow"><span>${esc(pname(pl))}</span><span class="rbar"><span style="width:${r.avg[pl.id] * 10}%"></span></span><b>${r.avg[pl.id].toFixed(1)}</b></div>`).join("")}</div>`
+      : `<p class="hint" style="margin:6px 0 0">No ratings yet. Played on ${fmtDate(s.date)}? Rate your mates. Nobody sees who voted what.</p>`}
+  </div>`;
+}
+
+async function openRateForm(sessionId) {
+  const s = state.sessions.find(x => x.id === sessionId);
+  if (!s) return;
+  try { state.myVoter = await api.voterId(); } catch (e) { return toast("Voting unavailable: " + e.message); }
+  const prev = state.votes.find(v => v.sessionId === sessionId && v.uid === state.myVoter) || { ratings: {}, motm: "" };
+  const all = sessionPlayers(s).slice().sort((a, b) => pname(a).localeCompare(pname(b)));
+  const m = document.getElementById("modal");
+  m.innerHTML = `<div class="dialog">
+    <h2>⭐ Rate the players</h2>
+    <p class="hint">${fmtDate(s.date)}. Your vote is <b>anonymous</b>: only averages are shown, never who gave which mark. One vote per phone/browser, and you can change it until the next match.</p>
+    <div class="field"><label>Who are you? (not saved, only hides you from the list)</label>
+      <select id="r-me" data-change="rate-me"><option value="">— skip —</option>${all.map(pl => `<option value="${pl.id}" ${state.rateMe === pl.id ? "selected" : ""}>${esc(pname(pl))}</option>`).join("")}</select>
+    </div>
+    <div id="r-list">
+      ${all.map(pl => `<div class="rate-row" data-pid="${pl.id}" ${state.rateMe === pl.id ? 'style="display:none"' : ""}>
+        <span>${esc(pname(pl))}</span>
+        <select data-rate="${pl.id}"><option value="">–</option>${[1,2,3,4,5,6,7,8,9,10].map(n => `<option value="${n}" ${prev.ratings?.[pl.id] === n ? "selected" : ""}>${n}</option>`).join("")}</select>
+        <label class="radio" style="padding:0" title="Player of the match"><input type="radio" name="r-motm" value="${pl.id}" ${prev.motm === pl.id ? "checked" : ""}> 🏆</label>
+      </div>`).join("")}
+    </div>
+    <div class="row between" style="margin-top:16px">
+      <span class="hint" style="margin:0">1 = poor · 10 = brilliant · 🏆 = player of the match</span>
+      <div class="row"><button data-action="close-modal">Cancel</button><button class="primary" data-action="submit-vote" data-id="${s.id}">Submit</button></div>
+    </div>
+  </div>`;
+  m.classList.add("open");
+}
+
+async function submitVote(sessionId) {
+  const me = document.getElementById("r-me").value;
+  const ratings = {};
+  document.querySelectorAll("[data-rate]").forEach(sel => { const pid = sel.dataset.rate; if (sel.value && pid !== me) ratings[pid] = +sel.value; });
+  let motm = document.querySelector("input[name=r-motm]:checked")?.value || "";
+  if (motm === me) motm = "";
+  if (!Object.keys(ratings).length && !motm) return toast("Give at least one rating or pick a player of the match");
+  closeModal();
+  await guarded(() => api.saveVote(sessionId, { ratings, motm }), "Thanks! Your anonymous vote is saved ⭐");
+}
+
 function lastTuesdayCard() {
   const next = nextMatchDate();
   const last = sortedSessions().find(s => s.date < next);
@@ -419,6 +727,7 @@ function lastTuesdayCard() {
       <button data-action="reuse" data-id="${last.id}">↺ Use these teams again</button>
     </div>
     ${sessionBody(last, false)}
+    ${resultsBlock(last)}
   </section>`;
 }
 
@@ -553,7 +862,12 @@ function aggregateStats() {
       }
     }
   }
-  for (const r of map.values()) { const p = byId(r.id); if (p) r.name = p.name; }
+  for (const r of map.values()) { const p = byId(r.id); if (p) r.name = p.name; r.rsum = 0; r.rn = 0; r.motm = 0; }
+  for (const s of sessions) {
+    const vr = voteResults(s.id);
+    for (const [pid, a] of Object.entries(vr.avg)) { const r = map.get(pid); if (r) { r.rsum += a; r.rn++; } }
+    if (vr.winner && map.get(vr.winner)) map.get(vr.winner).motm++;
+  }
   return { rows: [...map.values()].sort((a, b) => b.apps - a.apps || b.w - a.w || a.name.localeCompare(b.name)), sessions };
 }
 
@@ -562,6 +876,7 @@ function viewStats() {
   const { rows, sessions } = aggregateStats();
   const max = Math.max(1, ...rows.map(r => r.apps));
   const top = rows[0];
+  const topRated = rows.filter(r => r.rn >= 2).sort((a, b) => b.rsum / b.rn - a.rsum / a.rn)[0];
   const bestWin = rows.filter(r => r.w + r.d + r.l >= 3).sort((a, b) => b.w / (b.w + b.d + b.l) - a.w / (a.w + a.d + a.l))[0];
   return `
   <div class="row between" style="margin-bottom:12px">
@@ -576,15 +891,17 @@ function viewStats() {
     <div class="kpi"><div class="v">${rows.length}</div><div class="l">Different players</div></div>
     <div class="kpi"><div class="v">${top ? esc(top.name) : "—"}</div><div class="l">Most appearances${top ? ` (${top.apps})` : ""}</div></div>
     <div class="kpi"><div class="v">${bestWin ? esc(bestWin.name) : "—"}</div><div class="l">Best win rate${bestWin ? ` (${Math.round(100 * bestWin.w / (bestWin.w + bestWin.d + bestWin.l))}%, min 3 results)` : " (min 3 results)"}</div></div>
+    <div class="kpi"><div class="v">${topRated ? esc(topRated.name) : "—"}</div><div class="l">Best avg rating${topRated ? ` (${(topRated.rsum / topRated.rn).toFixed(1)})` : " (min 2 rated matches)"}</div></div>
   </div>
   <section class="card">
     ${rows.length ? `<div class="tablewrap"><table>
-      <tr><th>#</th><th>Player</th><th>Apps</th><th class="hide-m" style="width:30%"></th><th>W</th><th>D</th><th>L</th><th>Win %</th><th class="hide-m">Last played</th></tr>
+      <tr><th>#</th><th>Player</th><th>Apps</th><th class="hide-m" style="width:30%"></th><th>W</th><th>D</th><th>L</th><th>Win %</th><th>⭐ Avg</th><th>🏆</th><th class="hide-m">Last played</th></tr>
       ${rows.map((r, i) => {
         const g = r.w + r.d + r.l;
         return `<tr><td class="muted">${i + 1}</td><td><b>${esc(r.name)}</b></td><td><b>${r.apps}</b></td>
           <td class="hide-m"><div class="bar" style="width:${100 * r.apps / max}%"></div></td>
           <td>${r.w}</td><td>${r.d}</td><td>${r.l}</td><td>${g ? Math.round(100 * r.w / g) + "%" : "—"}</td>
+          <td>${r.rn ? (r.rsum / r.rn).toFixed(1) : "—"}</td><td>${r.motm || ""}</td>
           <td class="hide-m muted">${r.last ? fmtDate(r.last) : ""}</td></tr>`;
       }).join("")}
     </table></div>` : `<div class="empty">No matches saved yet. Split the teams on Match day and press <b>Save match</b>.</div>`}
@@ -615,6 +932,7 @@ function sessionCard(s) {
   return `<div class="session">
     <div class="row between"><b>${fmtDate(s.date)} · ${MATCH.start}–${MATCH.end}</b><span class="pill">${esc(s.format || "")}</span></div>
     ${sessionBody(s, true)}
+    ${resultsBlock(s)}
   </div>`;
 }
 
@@ -646,7 +964,7 @@ function viewCalendar() {
       ${s ? `<span class="ev">⚽ ${scored ? `${s.scoreA}:${s.scoreB}` : "saved"}</span>` : isTue ? `<span class="ev muted">${ds === next ? "next" : ds < t ? "–" : MATCH.start}</span>` : ""}
     </div>`);
   }
-  const title = first.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const title = first.toLocaleDateString(LOCALE, { month: "long", year: "numeric" });
   const sel = state.calSelected;
   const selSession = sel && byDate.get(sel);
   return `
@@ -775,8 +1093,8 @@ function shareText() {
   const order = arr => arr.slice().sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position));
   const dateEl = document.getElementById("matchDate");
   const d = dateEl ? dateEl.value : nextMatchDate();
-  const block = (k, arr) => `${TEAMS[k].emoji} *${TEAMS[k].name}*\n` + order(arr).map(p => `• ${p.name} (${p.position})`).join("\n");
-  return `⚽ Football Tuesday · ${fmtDate(d)} · ${MATCH.start}–${MATCH.end} (${formatLabel(A.length + B.length)})\n\n${block("A", A)}\n\n${block("B", B)}`;
+  const block = (k, arr) => `${TEAMS[k].emoji} *${tr(TEAMS[k].name)}*\n` + order(arr).map(p => `• ${p.name} (${p.position})`).join("\n");
+  return `⚽ Football Tuesday · ${fmtDate(d)} · ${MATCH.start}–${MATCH.end} (${tr(formatLabel(A.length + B.length))})\n\n${block("A", A)}\n\n${block("B", B)}`;
 }
 
 let toastTimer;
@@ -788,7 +1106,7 @@ function toast(msg) {
 
 document.addEventListener("click", async e => {
   const tab = e.target.closest("#tabs button");
-  if (tab) { state.tab = tab.dataset.tab; render(); return; }
+  if (tab) { state.tab = tab.dataset.tab; if (location.search) history.replaceState(null, "", location.pathname); render(); window.scrollTo(0, 0); return; }
   if (e.target.id === "modal") return closeModal();
   const el = e.target.closest("[data-action]");
   if (!el) return;
@@ -834,6 +1152,17 @@ document.addEventListener("click", async e => {
       else await guarded(() => api.addSession({ ...data, scoreA: null, scoreB: null, createdAt: Date.now() }), `Match on ${fmtDate(date)} saved ✔`);
       break;
     }
+    case "rate": openRateForm(id); break;
+    case "share-rate": {
+      const s = state.sessions.find(x => x.id === id);
+      const text = (LANG === "bg" ? `⭐ Оценете играчите от ${fmtDate(s.date)} (анонимно):\n` : `⭐ Rate the players from ${fmtDate(s.date)} (anonymous):\n`) + rateLink(id);
+      try { await navigator.clipboard.writeText(text); } catch {}
+      toast("Rating link copied. Opening Viber…");
+      window.location.href = "viber://forward?text=" + encodeURIComponent(text);
+      break;
+    }
+    case "lang": ls.set("ft_lang", el.dataset.lang); location.reload(); break;
+    case "submit-vote": await submitVote(id); break;
     case "reuse": {
       const s = state.sessions.find(x => x.id === id);
       if (!s) break;
@@ -861,14 +1190,14 @@ document.addEventListener("click", async e => {
       await guarded(() => api.updateSession(id, { scoreA: both ? +a : null, scoreB: both ? +b : null }), both ? "Score saved" : "Score cleared");
       break;
     }
-    case "delete-session": if (confirm("Delete this match? Appearances will be recalculated.")) await guarded(() => api.deleteSession(id), "Match deleted"); break;
+    case "delete-session": if (confirm(tr("Delete this match? Appearances will be recalculated."))) await guarded(() => api.deleteSession(id), "Match deleted"); break;
     case "new-player": openPlayerForm(null); break;
     case "edit-player": openPlayerForm(id); break;
     case "close-modal": closeModal(); break;
     case "save-player": await savePlayer(id); break;
     case "delete-player": {
       const p = byId(id);
-      if (confirm(`Delete ${p?.name}? Their past appearances stay in the stats.`)) {
+      if (confirm(tr(`Delete ${p?.name}? Their past appearances stay in the stats.`))) {
         closeModal(); state.checked.delete(id); ls.set("ft_checked", [...state.checked]);
         await guarded(() => api.deletePlayer(id), "Player deleted");
       }
@@ -884,6 +1213,10 @@ document.addEventListener("change", e => {
     el.checked ? state.checked.add(el.dataset.id) : state.checked.delete(el.dataset.id);
     ls.set("ft_checked", [...state.checked]); render();
   }
+  if (el.dataset.change === "rate-me") {
+    state.rateMe = el.value;
+    document.querySelectorAll(".rate-row").forEach(r => r.style.display = r.dataset.pid === el.value ? "none" : "");
+  }
   if (el.dataset.change === "stats-year") { state.statsYear = el.value; render(); }
 });
 document.addEventListener("keydown", e => {
@@ -897,7 +1230,9 @@ window.addEventListener("resize", () => {
   if (p !== lastPortrait && state.tab === "match" && state.teams) { lastPortrait = p; render(); }
 });
 
-(LOCAL_MODE ? initLocal() : initFirebase()).catch(err => {
+const qp = new URLSearchParams(location.search);
+if (qp.get("rate")) { state.tab = "rate"; state.rateSession = qp.get("rate"); }
+(LOCAL_MODE ? initLocal().then(async () => { state.myVoter = ls.get("ft_voter", null); }) : initFirebase()).catch(err => {
   console.error(err);
   document.getElementById("app").innerHTML = `<div class="card empty">Could not start the app: ${esc(err.message)}</div>`;
 });
