@@ -67,7 +67,7 @@ Press **Re-roll** for a different, equally fair split. You can tap two players o
 
 ## Weekly use
 
-1. **Match day:** tick who is there, press **Split teams**, share to WhatsApp.
+1. **Match day:** tick who is there, press **Split teams**, share to Viber.
 2. Press **Save match** to record appearances.
 3. After the game, go to **History** and enter the score. Wins, draws and losses then appear in **Stats**.
 
