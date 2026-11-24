@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a140f">
 <title>Football Tuesday</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚽</text></svg>">
 <style>
@@ -31,7 +32,7 @@
   button.danger{color:var(--danger);border-color:#5a2a2a}
   button.big{width:100%;padding:14px;font-size:17px;margin-top:14px}
   button:disabled{opacity:.45;cursor:not-allowed}
-  .pill{background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted);font-weight:500}
+  .pill{white-space:nowrap;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 10px;font-size:12px;color:var(--muted);font-weight:500}
   .badge{font-size:11px;padding:3px 8px;border-radius:6px;background:#3b3216;color:var(--gk)}
   .hint{color:var(--muted);font-size:13px;margin:4px 0 10px}
   .pos{display:inline-block;min-width:36px;text-align:center;font-size:11px;font-weight:700;padding:2px 5px;border-radius:5px;color:#06140c}
@@ -105,6 +106,8 @@
   .lang button.on{background:var(--accent);color:#06210f;font-weight:700}
   .help{padding-left:20px;line-height:1.6} .help li{margin-bottom:6px}
   .card h3{margin:16px 0 4px;font-size:15px} .card p{line-height:1.55;margin:4px 0}
+  nav button .ico{margin-right:6px} nav button .lbl-s{display:none}
+  .dlg-foot{position:sticky;bottom:-18px;background:var(--card);padding:12px 0 14px;margin-top:12px;border-top:1px solid var(--line)}
   .ratings{margin-top:12px;padding:12px;border-radius:10px;background:#122019;border:1px solid var(--line)}
   .motm{margin:10px 0 4px;font-size:15px}
   .rgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 16px;margin-top:8px}
@@ -112,6 +115,43 @@
   .rbar{height:8px;background:#0b1510;border-radius:4px;overflow:hidden}
   .rbar span{display:block;height:100%;background:var(--gk)}
   .rate-row{display:grid;grid-template-columns:1fr 70px 44px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+  @media (max-width:640px){
+    body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+    header{padding:10px 12px;gap:6px}
+    header h1{font-size:17px}
+    header .badge{font-size:10px;padding:2px 6px}
+    nav#tabs{position:fixed;left:0;right:0;bottom:0;z-index:8;display:grid;grid-template-columns:repeat(6,1fr);gap:0;padding:4px 2px calc(4px + env(safe-area-inset-bottom));border-top:1px solid var(--line);border-bottom:none;overflow:visible;box-shadow:0 -6px 18px rgba(0,0,0,.35)}
+    nav#tabs button{display:flex;flex-direction:column;align-items:center;gap:1px;padding:6px 0 4px;font-size:10.5px;border-radius:10px;min-width:0}
+    nav#tabs button .ico{font-size:20px;margin:0;line-height:1.1}
+    nav#tabs button .lbl{display:none} nav#tabs button .lbl-s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+    nav#tabs button.on{background:var(--card2);color:var(--accent)}
+    #toast{bottom:calc(84px + env(safe-area-inset-bottom));max-width:92vw;text-align:center}
+    .card{padding:13px;border-radius:12px;margin-bottom:12px}
+    h2{font-size:16px}
+    input[type=text],input[type=date],input[type=number],input[type=search],select{font-size:16px}
+    button{padding:9px 12px}
+    /* players: table becomes cards */
+    .ptable tr:first-child{display:none}
+    .ptable tr{display:grid;grid-template-columns:1fr auto;column-gap:10px;row-gap:5px;padding:11px 2px;border-bottom:1px solid var(--line)}
+    .ptable td{border:none;padding:0}
+    .ptable td:nth-child(1){grid-column:1;grid-row:1;font-size:16px}
+    .ptable td:nth-child(2){grid-column:1;grid-row:2}
+    .ptable td:nth-child(3){grid-column:1;grid-row:3;font-size:13px}
+    .ptable td:nth-child(4){grid-column:2;grid-row:3;text-align:right;font-size:13px;color:var(--muted)}
+    .ptable td:nth-child(6){grid-column:2;grid-row:1 / span 2;align-self:center}
+    /* stats: compact */
+    .stable th,.stable td{padding:8px 4px;font-size:13px}
+    .stable tr > :nth-child(1),.stable tr > :nth-child(6),.stable tr > :nth-child(7){display:none}
+    /* modal = full-screen sheet */
+    #modal{padding:0;align-items:flex-end}
+    .dialog{max-width:100%;max-height:94vh;border-radius:16px 16px 0 0;padding:16px 16px 0}
+    .dlg-foot{bottom:0;margin-bottom:0;padding-bottom:calc(14px + env(safe-area-inset-bottom))}
+    .rate-row{grid-template-columns:1fr 76px 40px}
+    /* calendar */
+    .cal{gap:3px} .cal-cell .evt:not(.sc){display:none}
+    .kpi .v{font-size:21px}
+    .session{padding:10px}
+  }
   @media (max-width:640px){ .cal-cell{min-height:48px;padding:4px;font-size:12px} .cal-cell .ev{font-size:10px} }
   @media (max-width:640px){ .teams{grid-template-columns:1fr} main{padding:10px} th.hide-m,td.hide-m{display:none}
     .checkgrid{grid-template-columns:1fr 1fr;gap:6px} .chk{padding:8px 7px;font-size:14px} .pitchwrap{max-width:460px;margin:0 auto} }
@@ -126,12 +166,12 @@
   </div>
 </header>
 <nav id="tabs">
-  <button data-tab="match" class="on">Match day</button>
-  <button data-tab="players">Players</button>
-  <button data-tab="stats">Stats</button>
-  <button data-tab="calendar">Calendar</button>
-  <button data-tab="history">History</button>
-  <button data-tab="help">❓ How it works</button>
+  <button data-tab="match" class="on"><span class="ico">⚽</span><span class="lbl">Match day</span><span class="lbl-s">Match</span></button>
+  <button data-tab="players"><span class="ico">👥</span><span class="lbl">Players</span><span class="lbl-s">Players</span></button>
+  <button data-tab="stats"><span class="ico">📊</span><span class="lbl">Stats</span><span class="lbl-s">Stats</span></button>
+  <button data-tab="calendar"><span class="ico">📅</span><span class="lbl">Calendar</span><span class="lbl-s">Calendar</span></button>
+  <button data-tab="history"><span class="ico">🕘</span><span class="lbl">History</span><span class="lbl-s">History</span></button>
+  <button data-tab="help"><span class="ico">❓</span><span class="lbl">How it works</span><span class="lbl-s">Help</span></button>
 </nav>
 <main id="app"><div class="empty">Loading…</div></main>
 <div id="modal"></div>
@@ -225,7 +265,7 @@ const BG = {
   "Calendar file downloaded. Open it to add the weekly match": "Файлът е изтеглен. Отвори го, за да добавиш седмичния мач",
   "Delete this match? Appearances will be recalculated.": "Да изтрия ли мача? Участията ще бъдат преизчислени.",
   "Voting is closed for this match.": "Гласуването за този мач е затворено.", "Match not found.": "Мачът не е намерен.",
-  "Rate the players": "Оцени играчите", "Search player…": "Търси играч…", "No players match your search.": "Няма играчи, които отговарят на търсенето.", "Clear": "Изчисти"
+  "Rate the players": "Оцени играчите", "Search player…": "Търси играч…", "How it works": "Как работи", "Match": "Мач", "Help": "Помощ", "saved": "запазен", "Alternative 1": "Алтернатива 1", "Alternative 2": "Алтернатива 2", "No players match your search.": "Няма играчи, които отговарят на търсенето.", "Clear": "Изчисти"
 };
 const pl = (n, one, many) => `${n} ${+n === 1 ? one : many}`;
 const BG_RX = [
@@ -242,7 +282,7 @@ const BG_RX = [
   [/^No ratings yet\. Played on (.+)\? Rate your mates\. Nobody sees who voted what\.$/, "Още няма оценки. Игра ли на $1? Оцени съотборниците си. Никой не вижда кой как е гласувал."],
   [/^No line-ups saved for (.+)\. Split the teams on$/, "Няма запазени състави за $1. Раздели отборите в"],
   [/^No line-ups saved for (.+)\.$/, "Няма запазени състави за $1."],
-  [/^(.+)\. Your vote is$/, "$1. Гласът ти е"],
+  [/^(.+)\. Your vote is$/, (m, d) => d.replace(/\.$/, "") + ". Гласът ти е"],
   [/^(.+) · now equivalent to (.+)$/, "$1 · сега еквивалентен на $2"],
   [/^Match on (.+) saved ✔$/, "Мачът на $1 е запазен ✔"], [/^Line-ups for (.+) updated ✔$/, "Съставите за $1 са обновени ✔"],
   [/^Teams loaded from (.+)$/, "Заредени отбори от $1"], [/^(.+) added$/, "$1 е добавен"],
@@ -518,7 +558,7 @@ function renderAuth() {
   const el = document.getElementById("auth");
   if (LOCAL_MODE) { el.innerHTML = `<span class="badge">DEMO MODE · data saved in this browser only</span>`; return; }
   if (state.user && !state.user.isAnonymous) {
-    el.innerHTML = `${canEdit() ? "" : `<span class="badge">View only</span>`}<span>${esc(state.user.email)}</span><button data-action="signout">Sign out</button>`;
+    el.innerHTML = `${canEdit() ? "" : `<span class="badge">View only</span>`}<span class="hide-m">${esc(state.user.email)}</span><button data-action="signout">Sign out</button>`;
   } else el.innerHTML = `<button data-action="signin">Organiser sign in</button>`;
 }
 
@@ -705,7 +745,7 @@ async function openRateForm(sessionId) {
         <label class="radio" style="padding:0" title="Player of the match"><input type="radio" name="r-motm" value="${pl.id}" ${prev.motm === pl.id ? "checked" : ""}> 🏆</label>
       </div>`).join("")}
     </div>
-    <div class="row between" style="margin-top:16px">
+    <div class="row between dlg-foot">
       <span class="hint" style="margin:0">1 = poor · 10 = brilliant · 🏆 = player of the match</span>
       <div class="row"><button data-action="close-modal">Cancel</button><button class="primary" data-action="submit-vote" data-id="${s.id}">Submit</button></div>
     </div>
@@ -777,8 +817,8 @@ function viewLineups() {
 
 function pitchSVG(A, B) {
   const W = 1000, H = 620;
-  const X = { GK: 62, DEF: 190, MID: 320, FWD: 440 };
   const portrait = window.innerWidth < 700;           // vertical pitch on phones
+  const X = portrait ? { GK: 80, DEF: 195, MID: 305, FWD: 412 } : { GK: 62, DEF: 190, MID: 320, FWD: 440 };
   const P = (x, y) => portrait ? [y, x] : [x, y];       // swap axes in portrait
   let s = portrait
     ? `<svg class="pitch" viewBox="0 0 ${H} ${W}" xmlns="http://www.w3.org/2000/svg"><g transform="matrix(0 1 1 0 0 0)">`
@@ -813,11 +853,15 @@ function pitchSVG(A, B) {
       arr.forEach((p, i) => {
         const [x, y] = P(mirror ? W - X[pos] : X[pos], 40 + (H - 60) * (i + 1) / (arr.length + 1));
         const sel = state.selected && state.selected.id === p.id;
-        const nm = p.name.length > 11 ? p.name.slice(0, 10) + "…" : p.name;
+        const parts = p.name.trim().split(/\s+/);
+        let nm = parts.length > 1 && p.name.length > 9 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : p.name;
+        const maxc = portrait ? 9 : 11;
+        if (nm.length > maxc) nm = nm.slice(0, maxc - 1) + "…";
+        const R = portrait ? 40 : 30;
         s += `<g class="pl ${sel ? "sel" : ""}" data-action="pick" data-team="${key}" data-id="${p.id}" transform="translate(${x},${y})">
-          <circle r="30" fill="${TEAMS[key].color}" stroke="${TEAMS[key].ink}" stroke-width="3"/>
-          <text class="p" y="6" style="fill:${TEAMS[key].ink}">${esc(p._slot || p.position)}</text>
-          <text class="n" y="54">${esc(nm)}</text></g>`;
+          <circle r="${R}" fill="${TEAMS[key].color}" stroke="${TEAMS[key].ink}" stroke-width="3"/>
+          <text class="p" y="${portrait ? 8 : 6}" style="fill:${TEAMS[key].ink};font-size:${portrait ? 22 : 17}px">${esc(p._slot || p.position)}</text>
+          <text class="n" y="${R + (portrait ? 28 : 24)}" style="font-size:${portrait ? 25 : 19}px">${esc(nm)}</text></g>`;
       });
     }
   };
@@ -850,7 +894,7 @@ function viewPlayers() {
     </div>
     <div class="search"><span>🔍</span><input type="search" id="p-search" placeholder="Search player…" value="${esc(state.playerSearch || "")}" autocomplete="off">${state.playerSearch ? `<button data-action="clear-search" title="Clear">✕</button>` : ""}</div>
     <p class="hint"><b>⚖️ Equivalent player</b> = a player of similar level. When both play, they go to opposite teams. (Optional: 🤝 mark two players to always play on the same team.)</p>
-    ${ps.length ? `<div class="tablewrap"><table>
+    ${ps.length ? `<div class="tablewrap"><table class="ptable">
       <tr><th>Name</th><th>Positions</th><th>Rating</th><th>Equivalent player</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
       ${ps.map(p => {
         const mate = p.pairId && byId(p.pairId);
@@ -919,7 +963,7 @@ function viewStats() {
     <div class="kpi"><div class="v">${topRated ? esc(topRated.name) : "—"}</div><div class="l">Best avg rating${topRated ? ` (${(topRated.rsum / topRated.rn).toFixed(1)})` : " (min 2 rated matches)"}</div></div>
   </div>
   <section class="card">
-    ${rows.length ? `<div class="tablewrap"><table>
+    ${rows.length ? `<div class="tablewrap"><table class="stable">
       <tr><th>#</th><th>Player</th><th>Apps</th><th class="hide-m" style="width:30%"></th><th>W</th><th>D</th><th>L</th><th>Win %</th><th>⭐ Avg</th><th>🏆</th><th class="hide-m">Last played</th></tr>
       ${rows.map((r, i) => {
         const g = r.w + r.d + r.l;
@@ -986,7 +1030,7 @@ function viewCalendar() {
     const cls = ["cal-cell", isTue ? "tue" : "", s ? "has" : "", ds === t ? "today" : "", ds === next ? "next" : "", ds === state.calSelected ? "sel" : ""].join(" ");
     cells.push(`<div class="${cls}" ${isTue || s ? `data-action="cal-day" data-date="${ds}"` : ""}>
       <span class="dn">${d}</span>
-      ${s ? `<span class="ev">⚽ ${scored ? `${s.scoreA}:${s.scoreB}` : "saved"}</span>` : isTue ? `<span class="ev muted">${ds === next ? "next" : ds < t ? "–" : MATCH.start}</span>` : ""}
+      ${s ? `<span class="ev">⚽ <span class="evt ${scored ? "sc" : ""}">${scored ? `${s.scoreA}:${s.scoreB}` : "saved"}</span></span>` : isTue ? `<span class="ev muted"><span class="evt">${ds === next ? "next" : ds < t ? "–" : MATCH.start}</span></span>` : ""}
     </div>`);
   }
   const title = first.toLocaleDateString(LOCALE, { month: "long", year: "numeric" });
@@ -1062,7 +1106,7 @@ function openPlayerForm(id) {
       <div class="field" style="flex:1"><label>Rating</label><select id="f-rating">${[1, 2, 3, 4, 5].map(r => `<option value="${r}" ${p.rating === r ? "selected" : ""}>${r} ${stars(r)}</option>`).join("")}</select></div>
     </div>
     <div class="row" style="gap:12px">
-      ${[0, 1].map(i => `<div class="field" style="flex:1"><label>Alternative position ${i + 1}</label>
+      ${[0, 1].map(i => `<div class="field" style="flex:1"><label>Alternative ${i + 1}</label>
         <select id="f-alt${i}"><option value="">— none —</option>${POSITIONS.map(k => `<option value="${k}" ${(p.altPositions || [])[i] === k ? "selected" : ""}>${POS_LABEL[k]}</option>`).join("")}</select></div>`).join("")}
     </div>
     <div class="field"><label>Equivalent player</label>
@@ -1075,7 +1119,7 @@ function openPlayerForm(id) {
       <label class="radio"><input type="radio" name="f-mode" value="together" ${p.pairMode === "together" ? "checked" : ""}> <span>🤝 <b>Same team</b> (always play together)</span></label>
     </div>
     <label class="radio"><input type="checkbox" id="f-active" ${p.active !== false ? "checked" : ""}> Active (shows on Match day)</label>
-    <div class="row between" style="margin-top:16px">
+    <div class="row between dlg-foot">
       ${id ? `<button class="danger" data-action="delete-player" data-id="${id}">Delete</button>` : "<span></span>"}
       <div class="row"><button data-action="close-modal">Cancel</button><button class="primary" data-action="save-player" data-id="${id || ""}">Save</button></div>
     </div>
