@@ -35,6 +35,7 @@
   .badge{font-size:11px;padding:3px 8px;border-radius:6px;background:#3b3216;color:var(--gk)}
   .hint{color:var(--muted);font-size:13px;margin:4px 0 10px}
   .pos{display:inline-block;min-width:36px;text-align:center;font-size:11px;font-weight:700;padding:2px 5px;border-radius:5px;color:#06140c}
+  .pos.alt{opacity:.55;min-width:30px;font-size:10px}
   .pos-GK{background:var(--gk)} .pos-DEF{background:var(--def)} .pos-MID{background:var(--mid)} .pos-FWD{background:var(--fwd)}
   .checkgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
   .chk{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;cursor:pointer;background:var(--card2);user-select:none}
@@ -79,6 +80,22 @@
   .session{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:12px;background:var(--card2)}
   .score{font-size:20px;font-weight:800}
   .empty{color:var(--muted);text-align:center;padding:24px}
+  .card.next{background:linear-gradient(135deg,#173a26,#15251c);border-color:#2f6b47}
+  a.btn{text-decoration:none;display:inline-block}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-h{text-align:center;font-size:12px;color:var(--muted);padding:4px 0;font-weight:600}
+  .cal-h.tue{color:var(--accent)}
+  .cal-cell{min-height:64px;border-radius:8px;background:#122019;padding:6px;display:flex;flex-direction:column;gap:4px;font-size:13px;border:1px solid transparent}
+  .cal-cell.empty{background:none}
+  .cal-cell .dn{color:var(--muted);font-weight:600}
+  .cal-cell.tue{background:var(--card2);border-color:var(--line);cursor:pointer}
+  .cal-cell.tue .dn{color:var(--text)}
+  .cal-cell.has{background:#173a26;border-color:var(--accent);cursor:pointer}
+  .cal-cell.next{border-color:var(--gk)}
+  .cal-cell.today .dn{background:var(--accent);color:#06210f;border-radius:6px;padding:0 5px;align-self:flex-start}
+  .cal-cell.sel{outline:2px solid #ffe14d}
+  .cal-cell .ev{font-size:12px;font-weight:700}
+  @media (max-width:640px){ .cal-cell{min-height:48px;padding:4px;font-size:12px} .cal-cell .ev{font-size:10px} }
   @media (max-width:640px){ .teams{grid-template-columns:1fr} main{padding:10px} th.hide-m,td.hide-m{display:none}
     .checkgrid{grid-template-columns:1fr 1fr;gap:6px} .chk{padding:8px 7px;font-size:14px} .pitchwrap{max-width:460px;margin:0 auto} }
 </style>
@@ -92,6 +109,7 @@
   <button data-tab="match" class="on">Match day</button>
   <button data-tab="players">Players</button>
   <button data-tab="stats">Stats</button>
+  <button data-tab="calendar">Calendar</button>
   <button data-tab="history">History</button>
 </nav>
 <main id="app"><div class="empty">Loading…</div></main>
@@ -116,6 +134,8 @@ const ADMIN_EMAILS = ["valio.mitov@gmail.com"];
 const TEAMS = { A: { name: "Black", color: "#111111", ink: "#ffffff", label: "#d9d9d9", emoji: "⚫" },
                 B: { name: "White", color: "#f5f5f5", ink: "#111111", label: "#ffffff", emoji: "⚪" } };
 const SPLIT_ITERATIONS = 3000;
+// Weekly match: every Tuesday 20:00–21:00 (Sofia time)
+const MATCH = { weekday: 2, start: "20:00", end: "21:00", tz: "Europe/Sofia", title: "Football Tuesday", location: "" };
 /* ===================================================================== */
 
 const POSITIONS = ["GK", "DEF", "MID", "FWD"];
@@ -128,7 +148,28 @@ const ls = {
 };
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const today = () => new Date().toISOString().slice(0, 10);
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const today = () => ymd(new Date());
+const parseYmd = s => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d, 12); };
+const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+// next match day: today if it's Tuesday and the game hasn't finished, otherwise the next Tuesday
+function nextMatchDate() {
+  const now = new Date();
+  const [eh, em] = MATCH.end.split(":").map(Number);
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12);
+  let diff = (MATCH.weekday - d.getDay() + 7) % 7;
+  if (diff === 0 && (now.getHours() > eh || (now.getHours() === eh && now.getMinutes() >= em))) diff = 7;
+  d.setDate(d.getDate() + diff);
+  return ymd(d);
+}
+function countdown(dateStr) {
+  const [h, m] = MATCH.start.split(":").map(Number);
+  const start = parseYmd(dateStr); start.setHours(h, m, 0, 0);
+  const ms = start - new Date();
+  if (ms <= 0) return "playing now ⚽";
+  const days = Math.floor(ms / 864e5), hrs = Math.floor(ms % 864e5 / 36e5), mins = Math.floor(ms % 36e5 / 6e4);
+  return days ? `in ${days}d ${hrs}h` : hrs ? `in ${hrs}h ${mins}m` : `in ${mins} min`;
+}
 const fmtDate = d => new Date(d + "T12:00:00").toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
 const stars = n => "★".repeat(n || 0) + "☆".repeat(5 - (n || 0));
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
@@ -142,6 +183,8 @@ const state = {
   teams: null,          // { A: [ids], B: [ids] }
   selected: null,       // { team, id }
   statsYear: "all",
+  calMonth: null,       // "YYYY-MM" shown in the calendar
+  calSelected: null,    // selected date in the calendar
   ready: { players: false, sessions: false }
 };
 
@@ -269,17 +312,24 @@ function randomSplit({ apart, together, singles }) {
   return { A, B };
 }
 
+const alts = p => (p.altPositions || []).filter(k => POSITIONS.includes(k) && k !== p.position);
+const canPlay = (p, k) => p.position === k || alts(p).includes(k);
+
 function teamStats(team) {
   const total = team.reduce((s, p) => s + (p.rating || 3), 0);
   const counts = Object.fromEntries(POSITIONS.map(k => [k, team.filter(p => p.position === k).length]));
-  return { total, avg: team.length ? total / team.length : 0, counts, size: team.length };
+  // coverage: main position counts 1, each alternative position 0.5
+  const cover = Object.fromEntries(POSITIONS.map(k => [k, team.reduce((n, p) => n + (p.position === k ? 1 : alts(p).includes(k) ? 0.5 : 0), 0)]));
+  const keepers = team.filter(p => canPlay(p, "GK")).length;
+  return { total, avg: team.length ? total / team.length : 0, counts, cover, keepers, size: team.length };
 }
 
 function splitCost(A, B) {
   const a = teamStats(A), b = teamStats(B);
   let c = Math.abs(a.total - b.total) * 10;
-  for (const k of POSITIONS) c += Math.abs(a.counts[k] - b.counts[k]) * 4;
-  if (a.counts.GK + b.counts.GK >= 2 && (a.counts.GK === 0 || b.counts.GK === 0)) c += 60;
+  for (const k of POSITIONS) c += Math.abs(a.counts[k] - b.counts[k]) * 3 + Math.abs(a.cover[k] - b.cover[k]) * 2;
+  if (a.counts.GK + b.counts.GK >= 2 && (a.counts.GK === 0 || b.counts.GK === 0)) c += 60;   // split main keepers
+  if (a.keepers + b.keepers >= 2 && (a.keepers === 0 || b.keepers === 0)) c += 60;          // someone able to play in goal on each side
   if (Math.abs(A.length - B.length) > 1) c += 1000;
   return c;
 }
@@ -308,7 +358,7 @@ function render() {
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === state.tab));
   const app = document.getElementById("app");
   if (!state.ready.players) { app.innerHTML = `<div class="empty">Loading…</div>`; return; }
-  app.innerHTML = { match: viewMatch, players: viewPlayers, stats: viewStats, history: viewHistory }[state.tab]();
+  app.innerHTML = { match: viewMatch, players: viewPlayers, stats: viewStats, calendar: viewCalendar, history: viewHistory }[state.tab]();
 }
 
 function renderAuth() {
@@ -324,8 +374,8 @@ function posTag(p) { return `<span class="pos pos-${esc(p)}">${esc(p)}</span>`; 
 function viewMatch() {
   const active = state.players.filter(p => p.active !== false).sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position) || a.name.localeCompare(b.name));
   const n = active.filter(p => state.checked.has(p.id)).length;
-  if (!active.length) return `<div class="card empty">No players yet. Add them in the <b>Players</b> tab.</div>`;
-  return `
+  if (!active.length) return nextMatchBanner() + `<div class="card empty">No players yet. Add them in the <b>Players</b> tab.</div>`;
+  return nextMatchBanner() + `
   <section class="card">
     <div class="row between">
       <h2>Who's playing tonight? <span class="pill">${n} in · ${formatLabel(n)}</span></h2>
@@ -335,13 +385,41 @@ function viewMatch() {
       ${active.map(p => `
         <label class="chk ${state.checked.has(p.id) ? "on" : ""}">
           <input type="checkbox" data-change="toggle-check" data-id="${p.id}" ${state.checked.has(p.id) ? "checked" : ""}>
-          ${posTag(p.position)}<span class="nm">${esc(p.name)}</span>
+          ${posTag(p.position)}<span class="nm">${esc(p.name)}</span>${alts(p).length ? `<span class="muted" style="font-size:11px">${alts(p).join("/")}</span>` : ""}
         </label>`).join("")}
     </div>
     ${n % 2 ? `<p class="hint">Odd number of players: one team will have one extra.</p>` : ""}
     <button class="primary big" data-action="split" ${n < 2 ? "disabled" : ""}>⚡ Split teams</button>
   </section>
-  ${state.teams ? viewLineups() : ""}`;
+  ${state.teams ? viewLineups() : ""}
+  ${lastTuesdayCard()}`;
+}
+
+function nextMatchBanner() {
+  const d = nextMatchDate();
+  return `<section class="card next">
+    <div class="row between">
+      <div><div class="muted" style="font-size:13px">Next match</div>
+        <div style="font-size:19px;font-weight:800">📅 ${fmtDate(d)} · ${MATCH.start}–${MATCH.end}</div></div>
+      <span class="pill" style="font-size:14px;color:var(--accent)">${countdown(d)}</span>
+    </div></section>`;
+}
+
+function sortedSessions() {
+  return state.sessions.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
+}
+
+function lastTuesdayCard() {
+  const next = nextMatchDate();
+  const last = sortedSessions().find(s => s.date < next);
+  if (!last) return "";
+  return `<section class="card">
+    <div class="row between">
+      <h2>Last match <span class="pill">${fmtDate(last.date)}</span></h2>
+      <button data-action="reuse" data-id="${last.id}">↺ Use these teams again</button>
+    </div>
+    ${sessionBody(last, false)}
+  </section>`;
 }
 
 function currentTeams() {
@@ -374,7 +452,7 @@ function viewLineups() {
     ${canEdit() ? `
     <div class="row" style="margin-top:14px">
       <label class="muted" for="matchDate">Match date</label>
-      <input type="date" id="matchDate" value="${today()}">
+      <input type="date" id="matchDate" value="${nextMatchDate()}">
       <button class="primary" data-action="save-match">💾 Save match</button>
       <span class="hint" style="margin:0">Saving counts appearances. Add the score later in History.</span>
     </div>` : ""}
@@ -403,9 +481,15 @@ function pitchSVG(A, B) {
         <text x="${tB[0]}" y="${tB[1]}" text-anchor="middle" font-size="22" font-weight="800" fill="${TEAMS.B.color}" style="paint-order:stroke;stroke:${TEAMS.B.ink};stroke-width:4px">${esc(TEAMS.B.name)}</text>`;
   const draw = (team, key, mirror) => {
     const lines = { GK: [], DEF: [], MID: [], FWD: [] };
-    team.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0)).forEach(p => {
-      let pos = POSITIONS.includes(p.position) ? p.position : "MID";
-      if (pos === "GK" && lines.GK.length) pos = "DEF";   // only one keeper in goal
+    const sorted = team.slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    // goalkeeper: best main GK, otherwise someone with GK as an alternative position
+    const keeper = sorted.find(p => p.position === "GK") || sorted.find(p => alts(p).includes("GK"));
+    sorted.forEach(p => {
+      let pos;
+      if (p === keeper) pos = "GK";
+      else if (p.position !== "GK" && POSITIONS.includes(p.position)) pos = p.position;
+      else pos = alts(p).find(k => k !== "GK") || "DEF";      // spare keeper plays outfield
+      p._slot = pos;
       lines[pos].push(p);
     });
     for (const pos of POSITIONS) {
@@ -416,7 +500,7 @@ function pitchSVG(A, B) {
         const nm = p.name.length > 11 ? p.name.slice(0, 10) + "…" : p.name;
         s += `<g class="pl ${sel ? "sel" : ""}" data-action="pick" data-team="${key}" data-id="${p.id}" transform="translate(${x},${y})">
           <circle r="30" fill="${TEAMS[key].color}" stroke="${TEAMS[key].ink}" stroke-width="3"/>
-          <text class="p" y="6" style="fill:${TEAMS[key].ink}">${esc(p.position)}</text>
+          <text class="p" y="6" style="fill:${TEAMS[key].ink}">${esc(p._slot || p.position)}</text>
           <text class="n" y="54">${esc(nm)}</text></g>`;
       });
     }
@@ -435,12 +519,12 @@ function viewPlayers() {
     </div>
     <p class="hint"><b>⚖️ Equivalent player</b> = a player of similar level. When both play, they go to opposite teams. (Optional: 🤝 mark two players to always play on the same team.)</p>
     ${ps.length ? `<div class="tablewrap"><table>
-      <tr><th>Name</th><th>Pos</th><th>Rating</th><th>Equivalent player</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
+      <tr><th>Name</th><th>Positions</th><th>Rating</th><th>Equivalent player</th><th class="hide-m">Status</th>${canEdit() ? "<th></th>" : ""}</tr>
       ${ps.map(p => {
         const mate = p.pairId && byId(p.pairId);
         return `<tr style="${p.active === false ? "opacity:.5" : ""}">
           <td><b>${esc(p.name)}</b></td>
-          <td>${posTag(p.position)}</td>
+          <td style="white-space:nowrap">${posTag(p.position)} ${alts(p).map(k => `<span class="pos alt pos-${k}">${k}</span>`).join(" ")}</td>
           <td class="stars">${stars(p.rating)}</td>
           <td>${mate ? `${p.pairMode === "together" ? "🤝" : "⚖️"} ${esc(mate.name)}` : `<span class="muted">—</span>`}</td>
           <td class="hide-m">${p.active === false ? "Inactive" : "Active"}</td>
@@ -507,33 +591,119 @@ function viewStats() {
   </section>`;
 }
 
-function viewHistory() {
-  const ss = state.sessions.slice().sort((a, b) => (b.date || "").localeCompare(a.date || "") || (b.createdAt || 0) - (a.createdAt || 0));
-  if (!ss.length) return `<div class="card empty">No matches saved yet.</div>`;
+function sessionBody(s, editable) {
+  const scored = Number.isFinite(s.scoreA) && Number.isFinite(s.scoreB);
   const list = arr => (arr || []).map(p => `${posTag(p.position)} ${esc(byId(p.id)?.name || p.name)}`).join("<br>");
-  return `<section class="card"><h2>Match history <span class="pill">${ss.length}</span></h2>
-    ${ss.map(s => {
-      const scored = Number.isFinite(s.scoreA) && Number.isFinite(s.scoreB);
-      return `<div class="session">
-        <div class="row between">
-          <b>${fmtDate(s.date)}</b>
-          <span class="pill">${esc(s.format || "")}</span>
-        </div>
-        <div class="row" style="margin:10px 0">
-          <span style="color:${TEAMS.A.label};font-weight:700">${esc(TEAMS.A.name)}</span>
-          ${canEdit()
-            ? `<input type="number" min="0" id="sa-${s.id}" value="${scored ? s.scoreA : ""}"> : <input type="number" min="0" id="sb-${s.id}" value="${scored ? s.scoreB : ""}">`
-            : `<span class="score">${scored ? `${s.scoreA} : ${s.scoreB}` : "– : –"}</span>`}
-          <span style="color:${TEAMS.B.label};font-weight:700">${esc(TEAMS.B.name)}</span>
-          ${canEdit() ? `<button data-action="save-score" data-id="${s.id}">Save score</button><button class="danger" data-action="delete-session" data-id="${s.id}">Delete</button>` : ""}
-        </div>
-        <div class="teams" style="margin-top:6px">
-          <div class="team" style="border-top-color:${TEAMS.A.color};font-size:14px;line-height:1.8">${list(s.teamA)}</div>
-          <div class="team" style="border-top-color:${TEAMS.B.color};font-size:14px;line-height:1.8">${list(s.teamB)}</div>
-        </div>
-      </div>`;
-    }).join("")}
-  </section>`;
+  const edit = editable && canEdit();
+  return `
+    <div class="row" style="margin:10px 0">
+      <span style="color:${TEAMS.A.label};font-weight:700">${TEAMS.A.emoji} ${esc(TEAMS.A.name)}</span>
+      ${edit
+        ? `<input type="number" min="0" id="sa-${s.id}" value="${scored ? s.scoreA : ""}"> : <input type="number" min="0" id="sb-${s.id}" value="${scored ? s.scoreB : ""}">`
+        : `<span class="score">${scored ? `${s.scoreA} : ${s.scoreB}` : "– : –"}</span>`}
+      <span style="color:${TEAMS.B.label};font-weight:700">${esc(TEAMS.B.name)} ${TEAMS.B.emoji}</span>
+      ${edit ? `<button data-action="save-score" data-id="${s.id}">Save score</button><button class="danger" data-action="delete-session" data-id="${s.id}">Delete</button>` : ""}
+      ${editable ? `<button data-action="reuse" data-id="${s.id}">↺ Use these teams</button>` : ""}
+    </div>
+    <div class="teams" style="margin-top:6px">
+      <div class="team" style="border-top-color:${TEAMS.A.color};font-size:14px;line-height:1.8">${list(s.teamA)}</div>
+      <div class="team" style="border-top-color:${TEAMS.B.color};font-size:14px;line-height:1.8">${list(s.teamB)}</div>
+    </div>`;
+}
+
+function sessionCard(s) {
+  return `<div class="session">
+    <div class="row between"><b>${fmtDate(s.date)} · ${MATCH.start}–${MATCH.end}</b><span class="pill">${esc(s.format || "")}</span></div>
+    ${sessionBody(s, true)}
+  </div>`;
+}
+
+function viewHistory() {
+  const ss = sortedSessions();
+  if (!ss.length) return `<div class="card empty">No matches saved yet.</div>`;
+  return `<section class="card"><h2>Match history <span class="pill">${ss.length}</span></h2>${ss.map(sessionCard).join("")}</section>`;
+}
+
+function viewCalendar() {
+  const next = nextMatchDate();
+  const month = state.calMonth || next.slice(0, 7);
+  const [y, m] = month.split("-").map(Number);
+  const first = new Date(y, m - 1, 1, 12);
+  const daysIn = new Date(y, m, 0).getDate();
+  const lead = (first.getDay() + 6) % 7;            // Monday-first grid
+  const byDate = new Map(); state.sessions.forEach(s => byDate.set(s.date, s));
+  const t = today();
+  const cells = [];
+  for (let i = 0; i < lead; i++) cells.push(`<div class="cal-cell empty"></div>`);
+  for (let d = 1; d <= daysIn; d++) {
+    const ds = `${month}-${String(d).padStart(2, "0")}`;
+    const isTue = parseYmd(ds).getDay() === MATCH.weekday;
+    const s = byDate.get(ds);
+    const scored = s && Number.isFinite(s.scoreA) && Number.isFinite(s.scoreB);
+    const cls = ["cal-cell", isTue ? "tue" : "", s ? "has" : "", ds === t ? "today" : "", ds === next ? "next" : "", ds === state.calSelected ? "sel" : ""].join(" ");
+    cells.push(`<div class="${cls}" ${isTue || s ? `data-action="cal-day" data-date="${ds}"` : ""}>
+      <span class="dn">${d}</span>
+      ${s ? `<span class="ev">⚽ ${scored ? `${s.scoreA}:${s.scoreB}` : "saved"}</span>` : isTue ? `<span class="ev muted">${ds === next ? "next" : ds < t ? "–" : MATCH.start}</span>` : ""}
+    </div>`);
+  }
+  const title = first.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+  const sel = state.calSelected;
+  const selSession = sel && byDate.get(sel);
+  return `
+  <section class="card">
+    <div class="row between">
+      <h2>📅 Calendar</h2>
+      <div class="row">
+        <a class="btn" href="${googleCalUrl()}" target="_blank" rel="noopener">➕ Google Calendar</a>
+        <button data-action="ics">⬇ Add to phone / Outlook (.ics)</button>
+      </div>
+    </div>
+    <p class="hint">Every Tuesday ${MATCH.start}–${MATCH.end}. Tap a Tuesday to see the line-ups from that day.</p>
+    <div class="row between" style="margin:8px 0">
+      <button data-action="cal-prev">‹</button><b style="font-size:16px">${title}</b><button data-action="cal-next">›</button>
+    </div>
+    <div class="cal">
+      ${["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map(d => `<div class="cal-h ${d === "Tue" ? "tue" : ""}">${d}</div>`).join("")}
+      ${cells.join("")}
+    </div>
+    ${month !== next.slice(0, 7) ? `<div style="text-align:center;margin-top:10px"><button data-action="cal-today">Back to this month</button></div>` : ""}
+  </section>
+  ${sel ? (selSession ? `<section class="card">${sessionCard(selSession)}</section>`
+       : `<section class="card empty">No line-ups saved for ${fmtDate(sel)}.${sel >= t ? " Split the teams on <b>Match day</b> and press <b>Save match</b>." : ""}</section>`) : ""}`;
+}
+
+function googleCalUrl() {
+  const d = nextMatchDate().replace(/-/g, "");
+  const st = MATCH.start.replace(":", "") + "00", en = MATCH.end.replace(":", "") + "00";
+  const q = new URLSearchParams({
+    action: "TEMPLATE", text: MATCH.title, dates: `${d}T${st}/${d}T${en}`, ctz: MATCH.tz,
+    recur: "RRULE:FREQ=WEEKLY;BYDAY=TU", details: "Weekly game. Line-ups: " + location.href.split("?")[0], location: MATCH.location
+  });
+  return "https://calendar.google.com/calendar/render?" + q.toString();
+}
+
+function downloadIcs() {
+  const d = nextMatchDate().replace(/-/g, "");
+  const st = MATCH.start.replace(":", "") + "00", en = MATCH.end.replace(":", "") + "00";
+  const stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Football Tuesday//EN", "CALSCALE:GREGORIAN",
+    "BEGIN:VTIMEZONE", "TZID:Europe/Sofia",
+    "BEGIN:DAYLIGHT", "TZOFFSETFROM:+0200", "TZOFFSETTO:+0300", "TZNAME:EEST", "DTSTART:19700329T030000", "RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU", "END:DAYLIGHT",
+    "BEGIN:STANDARD", "TZOFFSETFROM:+0300", "TZOFFSETTO:+0200", "TZNAME:EET", "DTSTART:19701025T040000", "RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU", "END:STANDARD",
+    "END:VTIMEZONE",
+    "BEGIN:VEVENT", "UID:football-tuesday-weekly@" + location.host, "DTSTAMP:" + stamp,
+    `DTSTART;TZID=Europe/Sofia:${d}T${st}`, `DTEND;TZID=Europe/Sofia:${d}T${en}`,
+    "RRULE:FREQ=WEEKLY;BYDAY=TU", "SUMMARY:" + MATCH.title,
+    "DESCRIPTION:Weekly game. Line-ups: " + location.href.split("?")[0],
+    MATCH.location ? "LOCATION:" + MATCH.location : "",
+    "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Football tonight 20:00", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"
+  ].filter(Boolean).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+  a.download = "football-tuesday.ics";
+  document.body.appendChild(a); a.click(); a.remove();
 }
 
 /* ----------------------------- PLAYER FORM -------------------------- */
@@ -547,6 +717,10 @@ function openPlayerForm(id) {
     <div class="row" style="gap:12px">
       <div class="field" style="flex:1"><label>Position</label><select id="f-pos">${POSITIONS.map(k => `<option value="${k}" ${p.position === k ? "selected" : ""}>${POS_LABEL[k]}</option>`).join("")}</select></div>
       <div class="field" style="flex:1"><label>Rating</label><select id="f-rating">${[1, 2, 3, 4, 5].map(r => `<option value="${r}" ${p.rating === r ? "selected" : ""}>${r} ${stars(r)}</option>`).join("")}</select></div>
+    </div>
+    <div class="row" style="gap:12px">
+      ${[0, 1].map(i => `<div class="field" style="flex:1"><label>Alternative position ${i + 1}</label>
+        <select id="f-alt${i}"><option value="">— none —</option>${POSITIONS.map(k => `<option value="${k}" ${(p.altPositions || [])[i] === k ? "selected" : ""}>${POS_LABEL[k]}</option>`).join("")}</select></div>`).join("")}
     </div>
     <div class="field"><label>Equivalent player</label>
       <select id="f-pair"><option value="">— none —</option>
@@ -586,6 +760,7 @@ async function savePlayer(existingId) {
   }
   put(id, {
     name, position: document.getElementById("f-pos").value,
+    altPositions: [...new Set([0, 1].map(i => document.getElementById("f-alt" + i).value).filter(v => v && v !== document.getElementById("f-pos").value))],
     rating: +document.getElementById("f-rating").value,
     active: document.getElementById("f-active").checked, pairId, pairMode
   });
@@ -599,9 +774,9 @@ function shareText() {
   const { A, B } = currentTeams();
   const order = arr => arr.slice().sort((a, b) => POSITIONS.indexOf(a.position) - POSITIONS.indexOf(b.position));
   const dateEl = document.getElementById("matchDate");
-  const d = dateEl ? dateEl.value : today();
+  const d = dateEl ? dateEl.value : nextMatchDate();
   const block = (k, arr) => `${TEAMS[k].emoji} *${TEAMS[k].name}*\n` + order(arr).map(p => `• ${p.name} (${p.position})`).join("\n");
-  return `⚽ Football Tuesday · ${fmtDate(d)} (${formatLabel(A.length + B.length)})\n\n${block("A", A)}\n\n${block("B", B)}`;
+  return `⚽ Football Tuesday · ${fmtDate(d)} · ${MATCH.start}–${MATCH.end} (${formatLabel(A.length + B.length)})\n\n${block("A", A)}\n\n${block("B", B)}`;
 }
 
 let toastTimer;
@@ -653,9 +828,33 @@ document.addEventListener("click", async e => {
       const { A, B } = currentTeams();
       const date = document.getElementById("matchDate").value || today();
       const snap = arr => arr.map(p => ({ id: p.id, name: p.name, position: p.position }));
-      await guarded(() => api.addSession({ date, format: formatLabel(A.length + B.length), teamA: snap(A), teamB: snap(B), scoreA: null, scoreB: null, createdAt: Date.now() }), "Match saved ✔");
+      const existing = state.sessions.find(s => s.date === date);
+      const data = { date, format: formatLabel(A.length + B.length), teamA: snap(A), teamB: snap(B) };
+      if (existing) await guarded(() => api.updateSession(existing.id, data), `Line-ups for ${fmtDate(date)} updated ✔`);
+      else await guarded(() => api.addSession({ ...data, scoreA: null, scoreB: null, createdAt: Date.now() }), `Match on ${fmtDate(date)} saved ✔`);
       break;
     }
+    case "reuse": {
+      const s = state.sessions.find(x => x.id === id);
+      if (!s) break;
+      const ok = arr => (arr || []).map(p => p.id).filter(pid => byId(pid));
+      state.teams = { A: ok(s.teamA), B: ok(s.teamB) };
+      [...state.teams.A, ...state.teams.B].forEach(pid => state.checked.add(pid));
+      ls.set("ft_checked", [...state.checked]);
+      state.selected = null; state.tab = "match"; render();
+      document.getElementById("lineups")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      toast("Teams loaded from " + fmtDate(s.date));
+      break;
+    }
+    case "cal-prev": case "cal-next": {
+      const base = state.calMonth || nextMatchDate().slice(0, 7);
+      const [y, m] = base.split("-").map(Number);
+      const d = new Date(y, m - 1 + (action === "cal-next" ? 1 : -1), 1, 12);
+      state.calMonth = ymd(d).slice(0, 7); render(); break;
+    }
+    case "cal-today": state.calMonth = null; render(); break;
+    case "cal-day": state.calSelected = state.calSelected === el.dataset.date ? null : el.dataset.date; render(); break;
+    case "ics": downloadIcs(); toast("Calendar file downloaded. Open it to add the weekly match"); break;
     case "save-score": {
       const a = document.getElementById("sa-" + id).value, b = document.getElementById("sb-" + id).value;
       const both = a !== "" && b !== "";
